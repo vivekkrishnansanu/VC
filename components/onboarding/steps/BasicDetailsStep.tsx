@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { ContactMedium } from '@/lib/mock-data/types';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Copy, Info } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -165,13 +163,13 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
   const canCopy = availableLocations.some(loc => loc.hasOnboarding);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 overflow-visible">
-      {/* Action Button */}
+    <form onSubmit={handleSubmit(onSubmit)} className="overflow-visible">
+      {/* Action Button - Top Right */}
       {canCopy && (
-        <div className="flex justify-end -mt-4">
+        <div className="flex justify-end mb-6">
           <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
             <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="shrink-0">
+              <Button type="button" variant="outline" size="sm" className="shrink-0">
                 <Copy className="h-4 w-4 mr-2" />
                 Copy from Location
               </Button>
@@ -184,8 +182,9 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 overflow-visible">
-                <div className="space-y-2 relative z-0">
-                  <Label>Source Location</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Source Location</Label>
+                  <div className="relative z-0">
                   <Select value={selectedSourceLocation} onValueChange={setSelectedSourceLocation}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
@@ -200,6 +199,7 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
                         ))}
                     </SelectContent>
                   </Select>
+                  </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium mb-1">Fields that will be copied:</p>
@@ -224,121 +224,97 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
         </div>
       )}
 
-      {/* Form Sections */}
-      <div className="space-y-6">
+      {/* Form Sections - Untitled UI Style */}
+      <div className="space-y-0">
         {/* Contact Information Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Contact Information</CardTitle>
-            <CardDescription>
+        <div className="space-y-4 pb-8">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1.5">Contact Information</h3>
+            <p className="text-sm text-muted-foreground">
               Primary point of contact for this location
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="pocName" className="text-sm font-medium">
-                  Point of Contact Name <span className="text-destructive">*</span>
-                </Label>
-                
-              </div>
+            </p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2.5">
+              <Label htmlFor="pocName" className="text-sm font-medium">
+                Point of Contact Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="pocName"
                 {...register('pocName')}
                 placeholder="Dr. Sarah Miller"
-                className="h-10"
               />
               {errors.pocName && (
-                <p className="text-sm text-destructive mt-1">{errors.pocName.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.pocName.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="pocEmail" className="text-sm font-medium">
-                  POC Email <span className="text-destructive">*</span>
-                </Label>
-                
-              </div>
+            <div className="space-y-2.5">
+              <Label htmlFor="pocEmail" className="text-sm font-medium">
+                POC Email <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="pocEmail"
                 type="email"
                 {...register('pocEmail')}
                 placeholder="sarah.miller@example.com"
-                className="h-10"
               />
               {errors.pocEmail && (
-                <p className="text-sm text-destructive mt-1">{errors.pocEmail.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.pocEmail.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="pocPhone" className="text-sm font-medium">
-                  POC Phone <span className="text-destructive">*</span>
-                </Label>
-                
-              </div>
+            <div className="space-y-2.5">
+              <Label htmlFor="pocPhone" className="text-sm font-medium">
+                POC Phone <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="pocPhone"
                 {...register('pocPhone')}
                 placeholder="+1-555-0101"
-                className="h-10"
               />
               {errors.pocPhone && (
-                <p className="text-sm text-destructive mt-1">{errors.pocPhone.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.pocPhone.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="preferredContactMedium" className="text-sm font-medium">
-                  Preferred Contact Medium
-                </Label>
-                
-              </div>
+            <div className="space-y-2.5">
+              <Label htmlFor="preferredContactMedium" className="text-sm font-medium">
+                Preferred Contact Medium
+              </Label>
               <div className="relative z-0">
                 <Select
-                value={watch('preferredContactMedium') || ''}
-                onValueChange={(value) => setValue('preferredContactMedium', value as ContactMedium)}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select preferred contact method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ContactMedium.EMAIL}>Email</SelectItem>
-                  <SelectItem value={ContactMedium.PHONE}>Phone</SelectItem>
-                  <SelectItem value={ContactMedium.SMS}>SMS</SelectItem>
-                  <SelectItem value={ContactMedium.PREFERRED_EMAIL}>Preferred Email</SelectItem>
-                  <SelectItem value={ContactMedium.PREFERRED_PHONE}>Preferred Phone</SelectItem>
-                </SelectContent>
-              </Select>
+                  value={watch('preferredContactMedium') || ''}
+                  onValueChange={(value) => setValue('preferredContactMedium', value as ContactMedium)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select preferred contact method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ContactMedium.EMAIL}>Email</SelectItem>
+                    <SelectItem value={ContactMedium.PHONE}>Phone</SelectItem>
+                    <SelectItem value={ContactMedium.SMS}>SMS</SelectItem>
+                    <SelectItem value={ContactMedium.PREFERRED_EMAIL}>Preferred Email</SelectItem>
+                    <SelectItem value={ContactMedium.PREFERRED_PHONE}>Preferred Phone</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
-          </CardContent>
-        </Card>
+        </div>
+
+        {/* Separator */}
+        <Separator className="my-8" />
 
         {/* Practice Details Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Practice Details</CardTitle>
-            <CardDescription>
-              Information about your practice management system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="practiceManagementSoftware" className="text-sm font-medium">
-                Existing Practice Management Software
-              </Label>
-              
+        <div className="space-y-4 pt-0">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-sm font-semibold text-foreground">Practice Details</h3>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="h-5 w-5">
-                    <Info className="h-4 w-4" />
+                  <Button type="button" variant="ghost" size="icon" className="h-4 w-4">
+                    <Info className="h-3.5 w-3.5" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -352,15 +328,21 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
                 </DialogContent>
               </Dialog>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Information about your practice management system
+            </p>
+          </div>
+          <div className="space-y-2.5">
+            <Label htmlFor="practiceManagementSoftware" className="text-sm font-medium">
+              Existing Practice Management Software
+            </Label>
             <Input
               id="practiceManagementSoftware"
               {...register('practiceManagementSoftware')}
               placeholder="Epic, Cerner, Dentrix, etc."
-              className="h-10"
             />
           </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </form>
   );

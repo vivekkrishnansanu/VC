@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent } from '@/components/ui/card';
 import { DayOfWeek } from '@/lib/mock-data/types';
 import { Copy } from 'lucide-react';
 
@@ -63,18 +62,17 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-6">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold">Working Hours</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h3 className="text-sm font-semibold text-foreground mb-1">Working Hours</h3>
+        <p className="text-sm text-muted-foreground">
           Set operating hours for each day of the week
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {schedules.map((schedule, index) => (
-          <Card key={schedule.day}>
-            <CardContent className="pt-6">
+          <div key={schedule.day} className="space-y-4 p-4 border rounded-lg">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -84,7 +82,7 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
                       handleDayChange(index, 'isOpen', checked)
                     }
                   />
-                  <Label htmlFor={`day-${index}`} className="font-medium text-base">
+                  <Label htmlFor={`day-${index}`} className="text-sm font-medium">
                     {daysOfWeek[index].label}
                   </Label>
                 </div>
@@ -104,7 +102,7 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
               {schedule.isOpen && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Open Time</Label>
+                    <Label className="text-sm font-medium">Open Time</Label>
                     <Input
                       type="time"
                       value={schedule.openTime}
@@ -112,7 +110,7 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Close Time</Label>
+                    <Label className="text-sm font-medium">Close Time</Label>
                     <Input
                       type="time"
                       value={schedule.closeTime}
@@ -121,13 +119,8 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </div>
         ))}
-      </div>
-
-      <div className="flex justify-end pt-4">
-        <Button type="submit" className="w-full sm:w-auto">Save & Continue</Button>
       </div>
     </form>
   );

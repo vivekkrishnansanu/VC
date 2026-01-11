@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -21,13 +20,21 @@ interface ReviewStepProps {
   locationId: string;
   onComplete: () => void;
   skipRules: any[];
+  onSubmit?: () => void;
+  canSubmit?: boolean;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
-export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProps) {
+export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSubmit, isSubmitting, submitError }: ReviewStepProps) {
   const [validation, setValidation] = useState<any>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+  const [internalSubmitError, setInternalSubmitError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // Use external state if provided, otherwise use internal state
+  const submitting = isSubmitting !== undefined ? isSubmitting : internalIsSubmitting;
+  const error = submitError !== undefined ? submitError : internalSubmitError;
 
   const location = mockDataService.locations.getById(locationId);
   const onboarding = mockDataService.onboarding.getByLocationId(locationId);
@@ -50,8 +57,13 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
   }, [locationId]);
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setSubmitError(null);
+    if (onSubmit) {
+      onSubmit();
+      return;
+    }
+
+    setInternalIsSubmitting(true);
+    setInternalSubmitError(null);
 
     try {
       const response = await fetch('/api/onboarding/submit', {
@@ -72,19 +84,19 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
       setShowConfirmDialog(false);
       onComplete();
     } catch (error: any) {
-      setSubmitError(error.message);
+      setInternalSubmitError(error.message);
     } finally {
-      setIsSubmitting(false);
+      setInternalIsSubmitting(false);
     }
   };
 
-  const canSubmit = validation?.isValid && unsupportedPhones.length === 0;
+  const submitAllowed = canSubmit !== undefined ? canSubmit : (validation?.isValid && unsupportedPhones.length === 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold">Review & Submit</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <h3 className="text-sm font-semibold text-foreground mb-1">Review & Submit</h3>
+        <p className="text-sm text-muted-foreground">
           Review all your answers before submitting
         </p>
       </div>
@@ -106,14 +118,14 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
       )}
 
       {validation?.warnings && validation.warnings.length > 0 && (
-        <Alert>
+        <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <div className="space-y-1">
-              <p className="font-medium">Warnings:</p>
-              <ul className="list-disc list-inside">
+            <div className="space-y-1.5">
+              <p className="font-semibold text-amber-950 dark:text-amber-50">Warnings:</p>
+              <ul className="list-disc list-inside space-y-1 text-amber-950 dark:text-amber-50">
                 {validation.warnings.map((warning: string, index: number) => (
-                  <li key={index}>{warning}</li>
+                  <li key={index} className="font-medium">{warning}</li>
                 ))}
               </ul>
             </div>
@@ -133,13 +145,11 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
         </Alert>
       )}
 
-      <div className="grid gap-4">
+      <div className="space-y-6">
         {/* Basic Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Basic Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Basic Details</h4>
+          <div className="space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">POC Name</p>
@@ -162,15 +172,13 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
                 <p className="font-medium">{onboarding?.practiceManagementSoftware || 'Not provided'}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Phone System */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Phone System</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Phone System</h4>
+          <div className="space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">System Type</p>
@@ -205,15 +213,13 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Devices */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Devices ({phones.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Devices ({phones.length})</h4>
+          <div>
             <div className="space-y-2">
               {phones.map((phone, index) => (
                 <div
@@ -237,15 +243,13 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Call Flow */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Call Flow</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Call Flow</h4>
+          <div className="space-y-2">
             <div>
               <p className="text-sm text-muted-foreground">Has IVR</p>
               <p className="font-medium">{onboarding?.hasIVR ? 'Yes' : 'No'}</p>
@@ -256,56 +260,19 @@ export function ReviewStep({ locationId, onComplete, skipRules }: ReviewStepProp
                 <p className="font-medium">{onboarding.greetingMessage}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {submitError && (
+      {error && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
-          <AlertDescription>{submitError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogTrigger asChild>
-            <Button disabled={!canSubmit || isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Submit Onboarding'
-              )}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Submission</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to submit this onboarding? Once submitted, you won&apos;t be able to make changes without approval.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowConfirmDialog(false)} className="w-full sm:w-auto">
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full sm:w-auto">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Confirm Submit'
-                )}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {/* Spacer for sticky submit button */}
+      <div className="h-20" />
     </div>
   );
 }

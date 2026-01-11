@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -128,17 +127,17 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-6 overflow-visible">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-8 overflow-visible">
       <div>
-        <h2 className="text-xl font-semibold">Call Flow Configuration</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <h3 className="text-sm font-semibold text-foreground mb-1">Call Flow Configuration</h3>
+        <p className="text-sm text-muted-foreground">
           Configure how calls are routed and handled
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="greetingMessage">Greeting Message</Label>
+          <Label htmlFor="greetingMessage" className="text-sm font-medium">Greeting Message</Label>
           <Textarea
             id="greetingMessage"
             value={greetingMessage}
@@ -161,7 +160,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               }}
               disabled={shouldSkipIVR}
             />
-            <Label htmlFor="hasIVR" className="font-normal">
+            <Label htmlFor="hasIVR" className="text-sm font-normal">
               Use IVR (Interactive Voice Response)
             </Label>
           </div>
@@ -176,33 +175,31 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         </div>
 
         {hasIVR && !shouldSkipIVR ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">IVR Options</h3>
-              <Button type="button" onClick={addIVROption}>
+              <h3 className="text-sm font-semibold text-foreground">IVR Options</h3>
+              <Button type="button" size="sm" onClick={addIVROption}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Option
               </Button>
             </div>
 
             {ivrOptions.map((option, index) => (
-              <Card key={option.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Option {option.optionNumber}</CardTitle>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeIVROption(option.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <div key={option.id} className="p-4 border rounded-lg space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">Option {option.optionNumber}</h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeIVROption(option.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Option Script</Label>
+                    <Label className="text-sm font-medium">Option Script</Label>
                     <Textarea
                       value={option.script}
                       onChange={(e) => updateIVROption(option.id, 'script', e.target.value)}
@@ -213,7 +210,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Ring Type</Label>
+                      <Label className="text-sm font-medium">Ring Type</Label>
                       <div className="relative z-0">
                         <Select
                         value={option.ringType}
@@ -231,7 +228,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Retry Attempts</Label>
+                      <Label className="text-sm font-medium">Retry Attempts</Label>
                       <Input
                         type="number"
                         min="0"
@@ -242,7 +239,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Wait Time (seconds)</Label>
+                    <Label className="text-sm font-medium">Wait Time (seconds)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -251,41 +248,43 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Targets to Ring</Label>
-                    {option.targets.map((target, targetIndex) => (
-                      <div key={targetIndex} className="flex gap-2">
-                        {option.ringType === 'users' ? (
-                          <Input
-                            placeholder="User ID or Email"
-                            value={target.userId || ''}
-                            onChange={(e) => {
-                              const updated = [...option.targets];
-                              updated[targetIndex] = { ...target, userId: e.target.value };
-                              updateIVROption(option.id, 'targets', updated);
-                            }}
-                          />
-                        ) : (
-                          <Input
-                            placeholder="Extension"
-                            value={target.extension || ''}
-                            onChange={(e) => {
-                              const updated = [...option.targets];
-                              updated[targetIndex] = { ...target, extension: e.target.value };
-                              updateIVROption(option.id, 'targets', updated);
-                            }}
-                          />
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeIVRTarget(option.id, targetIndex)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Targets to Ring</Label>
+                    <div className="space-y-2">
+                      {option.targets.map((target, targetIndex) => (
+                        <div key={targetIndex} className="flex gap-2">
+                          {option.ringType === 'users' ? (
+                            <Input
+                              placeholder="User ID or Email"
+                              value={target.userId || ''}
+                              onChange={(e) => {
+                                const updated = [...option.targets];
+                                updated[targetIndex] = { ...target, userId: e.target.value };
+                                updateIVROption(option.id, 'targets', updated);
+                              }}
+                            />
+                          ) : (
+                            <Input
+                              placeholder="Extension"
+                              value={target.extension || ''}
+                              onChange={(e) => {
+                                const updated = [...option.targets];
+                                updated[targetIndex] = { ...target, extension: e.target.value };
+                                updateIVROption(option.id, 'targets', updated);
+                              }}
+                            />
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeIVRTarget(option.id, targetIndex)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
@@ -298,7 +297,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Invalid Selection Script</Label>
+                    <Label className="text-sm font-medium">Invalid Selection Script</Label>
                     <Textarea
                       value={option.invalidSelectionScript}
                       onChange={(e) => updateIVROption(option.id, 'invalidSelectionScript', e.target.value)}
@@ -308,7 +307,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   </div>
 
                   <div className="space-y-2">
-                    <Label>After Retries</Label>
+                    <Label className="text-sm font-medium">After Retries</Label>
                     <div className="relative z-0">
                       <Select
                         value={option.afterRetriesTarget}
@@ -326,7 +325,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Voicemail Script</Label>
+                    <Label className="text-sm font-medium">Voicemail Script</Label>
                     <Textarea
                       value={option.voicemailScript}
                       onChange={(e) => updateIVROption(option.id, 'voicemailScript', e.target.value)}
@@ -334,14 +333,14 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                       rows={2}
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4 overflow-visible">
             <div className="space-y-2">
-              <Label>Direct Ring Type</Label>
+              <Label className="text-sm font-medium">Direct Ring Type</Label>
               <div className="relative z-0">
                 <Select
                   value={directRingType}
@@ -358,41 +357,43 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Targets to Ring</Label>
-              {directTargets.map((target, index) => (
-                <div key={index} className="flex gap-2">
-                  {directRingType === 'users' ? (
-                    <Input
-                      placeholder="User ID or Email"
-                      value={target.userId || ''}
-                      onChange={(e) => {
-                        const updated = [...directTargets];
-                        updated[index] = { ...target, userId: e.target.value };
-                        setDirectTargets(updated);
-                      }}
-                    />
-                  ) : (
-                    <Input
-                      placeholder="Extension"
-                      value={target.extension || ''}
-                      onChange={(e) => {
-                        const updated = [...directTargets];
-                        updated[index] = { ...target, extension: e.target.value };
-                        setDirectTargets(updated);
-                      }}
-                    />
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeDirectTarget(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Targets to Ring</Label>
+              <div className="space-y-2">
+                {directTargets.map((target, index) => (
+                  <div key={index} className="flex gap-2">
+                    {directRingType === 'users' ? (
+                      <Input
+                        placeholder="User ID or Email"
+                        value={target.userId || ''}
+                        onChange={(e) => {
+                          const updated = [...directTargets];
+                          updated[index] = { ...target, userId: e.target.value };
+                          setDirectTargets(updated);
+                        }}
+                      />
+                    ) : (
+                      <Input
+                        placeholder="Extension"
+                        value={target.extension || ''}
+                        onChange={(e) => {
+                          const updated = [...directTargets];
+                          updated[index] = { ...target, extension: e.target.value };
+                          setDirectTargets(updated);
+                        }}
+                      />
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeDirectTarget(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
               <Button type="button" variant="outline" size="sm" onClick={addDirectTarget}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Target
@@ -402,7 +403,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="voicemailScript">Voicemail Script</Label>
+          <Label htmlFor="voicemailScript" className="text-sm font-medium">Voicemail Script</Label>
           <Textarea
             id="voicemailScript"
             value={voicemailScript}
@@ -413,7 +414,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         </div>
 
         <div className="space-y-2">
-          <Label>Shared Voicemail Users</Label>
+          <Label className="text-sm font-medium">Shared Voicemail Users</Label>
           <Input
             placeholder="Enter user emails separated by commas"
             value={sharedVoicemailUsers.join(', ')}
@@ -422,9 +423,6 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         </div>
       </div>
 
-      <div className="flex justify-end pt-4">
-        <Button type="submit" className="w-full sm:w-auto">Save & Continue</Button>
-      </div>
     </form>
   );
 }

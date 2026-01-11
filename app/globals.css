@@ -2,48 +2,50 @@
 
 @layer base {
   :root {
-    /* VoiceStack-Inspired Professional Color Palette */
+    /* VoiceStack palette (from Colorize screenshot + logo extraction)
+     * Source: https://colorize.design/?url=https://api.colorize.design/getColors?url=https://voicestack.com/%26html=true%26css=true%26js=false%26screenshot=true%26logo=true%26screenshotColors=12%26logoColors=6
+     */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 236 68% 5%; /* rgb(4,5,21) */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 236 68% 5%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 236 68% 5%;
     
-    /* Professional Primary Blue (VoiceStack style) */
-    --primary: 217 91% 60%;
+    /* Primary (homepage slateblue) */
+    --primary: 241 59% 62%; /* #6463d7 */
     --primary-foreground: 0 0% 100%;
     
-    /* Modern Secondary */
-    --secondary: 210 40% 98%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary surfaces (logo lightsteelblue tint) */
+    --secondary: 238 92% 96%;
+    --secondary-foreground: 236 68% 5%;
     
-    /* Refined Muted */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted surfaces + text */
+    --muted: 238 92% 98%;
+    --muted-foreground: 221 10% 37%; /* #545a67 */
     
-    /* Professional Accent */
-    --accent: 217 91% 60%;
+    /* Accent (homepage mediumslateblue) */
+    --accent: 258 76% 64%; /* #875ce9 */
     --accent-foreground: 0 0% 100%;
     
     /* Clean Destructive */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Subtle Borders */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    /* Borders / inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 241 59% 62%;
     
     /* Modern Border Radius */
     --radius: 0.75rem;
     
-    /* Chart Colors */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* Chart Colors (match site accents) */
+    --chart-1: 241 59% 62%;  /* #6463d7 */
+    --chart-2: 240 87% 67%;  /* #6464f4 */
+    --chart-3: 231 91% 71%;  /* #7084f8 */
+    --chart-4: 238 92% 86%;  /* #babcfc */
+    --chart-5: 258 76% 64%;  /* #875ce9 */
     
     /* Design System Enhancements */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -53,36 +55,48 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 236 68% 5%;
+    --foreground: 0 0% 98%;
+    --card: 226 16% 21%;
+    --card-foreground: 0 0% 98%;
+    --popover: 226 16% 21%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary (logo mediumslateblue for dark backgrounds) */
+    --primary: 240 87% 67%;
+    --primary-foreground: 236 68% 5%;
+
+    --secondary: 226 16% 21%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 226 16% 21%;
+    --muted-foreground: 219 10% 73%;
+    --accent: 238 35% 28%;
+    --accent-foreground: 0 0% 98%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 238 35% 28%;
+    --input: 238 35% 28%;
+    --ring: 240 87% 67%;
+
+    --chart-1: 240 87% 67%;
+    --chart-2: 241 59% 62%;
+    --chart-3: 231 91% 71%;
+    --chart-4: 238 92% 86%;
+    --chart-5: 258 76% 64%;
   }
 }
 
 @layer base {
   * {
     border-color: hsl(var(--border));
+    box-sizing: border-box;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
   
   body {
@@ -93,35 +107,29 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
-  /* Professional Typography (VoiceStack style) */
+  /* Untitled-like Typography */
   h1 {
-    font-weight: 700;
-    line-height: 1.2;
+    font-weight: 650;
+    line-height: 1.15;
     letter-spacing: -0.02em;
   }
   
   h2 {
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
   }
   
   h3, h4, h5, h6 {
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
   }
   
   /* Smooth Focus States */
   *:focus-visible {
     /* Avoid "double focus" (outline + component rings). Components handle focus rings. */
     outline: none;
-  }
-  
-  /* Smooth Transitions */
-  * {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
   }
 }
 
@@ -148,11 +156,32 @@
   
   [data-radix-select-content] {
     z-index: 10000 !important;
+    background-color: white !important;
+  }
+  
+  /* Ensure Select items have proper backgrounds */
+  [data-radix-select-item] {
+    background-color: white !important;
+  }
+  
+  [data-radix-select-item]:hover,
+  [data-radix-select-item]:focus {
+    background-color: hsl(var(--muted)) !important;
+  }
+  
+  /* Ensure input and select borders are not clipped */
+  input,
+  select,
+  textarea,
+  [role="combobox"],
+  [data-radix-select-trigger] {
+    box-sizing: border-box !important;
+    border-width: 1px !important;
   }
   
   [data-radix-dialog-content] {
     z-index: 100 !important;
-    background-color: hsl(var(--background)) !important;
+    background-color: white !important;
   }
   
   [data-radix-dialog-overlay] {

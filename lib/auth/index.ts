@@ -104,3 +104,6 @@ export function signOut(): void {
 export function isAuthenticated(): boolean {
   return getCurrentUser() !== null;
 }
+
+// Re-export User type for consumers importing from "@/lib/auth"
+export type { User } from "@/types";

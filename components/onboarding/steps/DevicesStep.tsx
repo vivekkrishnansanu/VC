@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -196,28 +195,27 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
   const unsupportedDevices = devices.filter(d => d.isUnsupported);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 overflow-visible">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 overflow-visible">
       {unsupportedDevices.length > 0 && (
-        <Alert variant="destructive" className="border-2 border-destructive/50 shadow-md">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="font-medium">
+          <AlertDescription>
             {unsupportedDevices.length} unsupported device(s) detected. These require approval before submission.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Form Sections */}
-      <div className="space-y-6">
+      {/* Form Sections - Untitled UI Style */}
+      <div className="space-y-8">
         {/* Device Overview Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Device Overview</CardTitle>
-            <CardDescription>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">Device Overview</h3>
+            <p className="text-sm text-muted-foreground">
               Configure the total number of devices and assignment strategy
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+            </p>
+          </div>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="totalDevices" className="text-sm font-medium">
                 Total Number of Devices <span className="text-destructive">*</span>
@@ -227,10 +225,9 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
                 type="number"
                 min="1"
                 {...register('totalDevices', { valueAsNumber: true })}
-                className="h-10"
               />
               {errors.totalDevices && (
-                <p className="text-sm text-destructive mt-1">{errors.totalDevices.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.totalDevices.message}</p>
               )}
             </div>
 
@@ -270,7 +267,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
                 value={assignmentStrategy || ''}
                 onValueChange={(value) => setValue('assignmentStrategy', value as PhoneAssignmentType)}
               >
-                <SelectTrigger className="h-10">
+                <SelectTrigger>
                   <SelectValue placeholder="Select assignment strategy" />
                 </SelectTrigger>
                 <SelectContent>
@@ -288,107 +285,99 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
               </div>
             </div>
           </div>
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Devices List Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Devices</CardTitle>
-                <CardDescription>
-                  {devices.length} device{devices.length !== 1 ? 's' : ''} added
-                </CardDescription>
-              </div>
-              <Button type="button" onClick={() => setShowAddDevice(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Device
-              </Button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Devices</h3>
+              <p className="text-sm text-muted-foreground">
+                {devices.length} device{devices.length !== 1 ? 's' : ''} added
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+            <Button type="button" size="sm" onClick={() => setShowAddDevice(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Device
+            </Button>
+          </div>
 
           {devices.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">
-                  No devices added yet. Click &quot;Add Device&quot; to get started.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="p-8 text-center border rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                No devices added yet. Click &quot;Add Device&quot; to get started.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {devices.map((device, index) => (
-                <Card key={device.id} className={device.isUnsupported ? 'border-destructive' : ''}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">
+                <div
+                  key={device.id}
+                  className={`p-4 border rounded-lg space-y-3 ${device.isUnsupported ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
                         Device {index + 1}
-                        {device.isUnsupported && (
-                          <Badge variant="destructive" className="ml-2">
-                            Unsupported
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveDevice(device.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Brand</Label>
-                        <p className="font-medium">{device.brand}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Model</Label>
-                        <p className="font-medium">{device.model}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Ownership</Label>
-                        <p className="font-medium">{device.ownership}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Assignment</Label>
-                        <p className="font-medium">{device.assignmentType.replace('_', ' ')}</p>
-                      </div>
-                      {device.macAddress && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">MAC Address</Label>
-                          <p className="font-medium">{device.macAddress}</p>
-                        </div>
-                      )}
-                      {device.extension && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Extension</Label>
-                          <p className="font-medium">{device.extension}</p>
-                        </div>
+                      </span>
+                      {device.isUnsupported && (
+                        <Badge variant="destructive" className="text-xs">
+                          Unsupported
+                        </Badge>
                       )}
                     </div>
-                    {device.isUnsupported && (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          This device model is not supported. You can either purchase a supported device through us or choose a different model.
-                        </AlertDescription>
-                      </Alert>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveDevice(device.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Brand</Label>
+                      <p className="text-sm font-medium mt-1">{device.brand}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Model</Label>
+                      <p className="text-sm font-medium mt-1">{device.model}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ownership</Label>
+                      <p className="text-sm font-medium mt-1">{device.ownership}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Assignment</Label>
+                      <p className="text-sm font-medium mt-1">{device.assignmentType.replace('_', ' ')}</p>
+                    </div>
+                    {device.macAddress && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">MAC Address</Label>
+                        <p className="text-sm font-medium mt-1">{device.macAddress}</p>
+                      </div>
                     )}
-                  </CardContent>
-                </Card>
+                    {device.extension && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Extension</Label>
+                        <p className="text-sm font-medium mt-1">{device.extension}</p>
+                      </div>
+                    )}
+                  </div>
+                  {device.isUnsupported && (
+                    <Alert variant="destructive" className="mt-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        This device model is not supported. You can either purchase a supported device through us or choose a different model.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               ))}
             </div>
           )}
         </div>
-          </CardContent>
-        </Card>
 
         {/* Add Device Dialog */}
         <Dialog open={showAddDevice} onOpenChange={(open) => {
@@ -406,7 +395,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
         }}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl">Add New Device</DialogTitle>
+              <DialogTitle>Add New Device</DialogTitle>
               <DialogDescription>
                 Fill in the device information below
               </DialogDescription>
@@ -467,9 +456,9 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
                     </SelectContent>
                   </Select>
                   {deviceValidation && !deviceValidation.isSupported && (
-                    <Alert variant="destructive" className="mt-2 border-2">
+                    <Alert variant="destructive" className="mt-2">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription className="font-medium">
+                      <AlertDescription>
                         This device model is not supported. You can either purchase a supported device through us or choose a different model.
                       </AlertDescription>
                     </Alert>

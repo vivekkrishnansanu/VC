@@ -2,13 +2,11 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 /**
- * Utility function to merge Tailwind CSS classes
- * Re-exported here for backward compatibility
- * Additional utilities available in ./utils/index
+ * Merge Tailwind classnames safely.
+ *
+ * Note: We intentionally keep this as a single file (and do not mirror it with a
+ * `lib/utils/` directory) to avoid ambiguous module resolution in Next dev/HMR.
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-// Re-export additional utilities
-export * from './utils/index';

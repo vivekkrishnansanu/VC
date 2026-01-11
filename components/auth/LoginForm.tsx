@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
 import { UserRole } from "@/types";
+import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -16,7 +17,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
-  const { signIn, isLoading } = useAuth();
+  const { signIn } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     name: "",
     email: "",
@@ -66,6 +68,7 @@ export default function LoginForm() {
     }
 
     try {
+      setIsSubmitting(true);
       const role =
         result.data.email.includes("@company.com") ||
         result.data.email.includes("implementation")
@@ -81,15 +84,17 @@ export default function LoginForm() {
     } catch (error) {
       console.error("Login error:", error);
       // Error handling can be enhanced with toast notifications
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Check if form is valid by validating the schema
   const validationResult = loginSchema.safeParse(formData);
-  const isFormValid = validationResult.success && !isLoading;
+  const isFormValid = validationResult.success && !isSubmitting;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Full Name */}
       <div className="space-y-2">
         <Label htmlFor="name" className="text-sm font-medium">
@@ -102,6 +107,7 @@ export default function LoginForm() {
           value={formData.name}
           onChange={(e) => handleChange("name", e.target.value)}
           onBlur={() => handleBlur("name")}
+          autoComplete="name"
           aria-invalid={touched.name && errors.name ? "true" : "false"}
           aria-describedby={touched.name && errors.name ? "name-error" : undefined}
           className={touched.name && errors.name ? "border-destructive" : ""}
@@ -121,14 +127,20 @@ export default function LoginForm() {
         <Input
           id="email"
           type="email"
-          placeholder="Enter your work email"
+          placeholder="name@company.com"
           value={formData.email}
           onChange={(e) => handleChange("email", e.target.value)}
           onBlur={() => handleBlur("email")}
+          autoComplete="email"
+          inputMode="email"
           aria-invalid={touched.email && errors.email ? "true" : "false"}
           aria-describedby={touched.email && errors.email ? "email-error" : undefined}
           className={touched.email && errors.email ? "border-destructive" : ""}
         />
+        <p className="text-xs text-muted-foreground">
+          For demo: emails containing <span className="font-medium text-foreground">@company.com</span> or{" "}
+          <span className="font-medium text-foreground">implementation</span> sign in as an Implementation Lead.
+        </p>
         {touched.email && errors.email && (
           <p id="email-error" className="text-sm text-destructive" role="alert">
             {errors.email}
@@ -140,20 +152,17 @@ export default function LoginForm() {
       <Button
         type="submit"
         className="w-full"
-        disabled={!isFormValid || isLoading}
+        disabled={!isFormValid || isSubmitting}
       >
-        {isLoading ? "Signing in..." : "Continue"}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Signing in
+          </>
+        ) : (
+          "Continue"
+        )}
       </Button>
-
-      {/* Secondary hint */}
-      <p className="text-center text-sm text-muted-foreground">
-        Google Sign-In will be enabled soon
-      </p>
-
-      {/* Footer */}
-      <p className="text-center text-xs text-muted-foreground">
-        Access will be restricted in later phases.
-      </p>
     </form>
   );
 }

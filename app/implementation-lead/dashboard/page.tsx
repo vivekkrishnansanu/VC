@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { OnboardingStatus } from '@/lib/mock-data/types';
 import Link from 'next/link';
-import { Plus, Building2, MapPin, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Building2, MapPin, CheckCircle2, Clock, AlertCircle, LayoutDashboard, Users, Building } from 'lucide-react';
+import { PortalShell } from '@/components/layouts/PortalShell';
 
 export default function ImplementationLeadDashboard() {
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -55,25 +56,27 @@ export default function ImplementationLeadDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 max-w-7xl space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-2">Dashboard</h1>
-            <p className="text-lg text-muted-foreground">
-              Manage accounts and onboarding progress
-            </p>
-          </div>
-          <Link href="/implementation-lead/accounts/create">
-            <Button className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Account
-            </Button>
-          </Link>
-        </div>
+    <PortalShell
+      title="Dashboard"
+      description="Manage accounts and track onboarding progress."
+      nav={[
+        { title: "Dashboard", href: "/implementation-lead/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+        { title: "Accounts", href: "/implementation-lead/dashboard", icon: <Building className="h-4 w-4" /> },
+        { title: "Users", href: "/implementation-lead/dashboard", icon: <Users className="h-4 w-4" /> },
+      ]}
+      actions={
+        <Link href="/implementation-lead/accounts/create">
+          <Button>
+            <Plus className="h-4 w-4" />
+            Create account
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-6">
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base font-semibold">Total Accounts</CardTitle>
             <Building2 className="h-5 w-5 text-primary" />
@@ -83,7 +86,7 @@ export default function ImplementationLeadDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base font-semibold">Total Locations</CardTitle>
             <MapPin className="h-5 w-5 text-primary" />
@@ -95,7 +98,7 @@ export default function ImplementationLeadDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base font-semibold">Pending Approvals</CardTitle>
             <AlertCircle className="h-5 w-5 text-primary" />
@@ -106,10 +109,10 @@ export default function ImplementationLeadDashboard() {
         </Card>
       </div>
 
-      <Card className="shadow-lg">
+      <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold">Accounts</CardTitle>
-          <CardDescription className="text-base mt-1">All accounts and their onboarding status</CardDescription>
+          <CardTitle className="text-lg">Accounts</CardTitle>
+          <CardDescription>All accounts and their onboarding progress.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -156,7 +159,9 @@ export default function ImplementationLeadDashboard() {
                       </TableCell>
                       <TableCell>
                         <Link href={`/implementation-lead/accounts/${account.id}`}>
-                          <Button variant="outline" size="sm" className="w-full sm:w-auto">View</Button>
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                            View
+                          </Button>
                         </Link>
                       </TableCell>
                     </TableRow>
@@ -168,6 +173,6 @@ export default function ImplementationLeadDashboard() {
         </CardContent>
       </Card>
       </div>
-    </div>
+    </PortalShell>
   );
 }

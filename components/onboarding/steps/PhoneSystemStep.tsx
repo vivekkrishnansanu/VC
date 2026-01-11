@@ -9,12 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PhoneSystemType } from '@/lib/mock-data/types';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Info, AlertCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -154,45 +154,44 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
     .map(k => k.phoneSystemName);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 overflow-visible">
-      {/* Form Sections */}
-      <div className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="overflow-visible">
+      {/* Form Sections - Untitled UI Style */}
+      <div className="space-y-0">
         {/* Phone System Type Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">System Type</CardTitle>
-            <CardDescription>
+        <div className="space-y-4 pb-8">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1.5">System Type</h3>
+            <p className="text-sm text-muted-foreground">
               Select the type of phone system you currently use
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 overflow-visible">
+            </p>
+          </div>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phoneSystemType" className="text-sm font-medium">
                 Phone System Type <span className="text-destructive">*</span>
               </Label>
               <div className="relative z-0">
                 <Select
-                value={phoneSystemType || ''}
-                onValueChange={(value) => {
-                  setValue('phoneSystemType', value as PhoneSystemType);
-                  // Clear dependent fields
-                  setValue('phoneSystemDetails', '');
-                  setValue('phoneSystemVoipType', '');
-                  setValue('callForwardingSupported', undefined);
-                }}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select phone system type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PhoneSystemType.TRADITIONAL}>Traditional</SelectItem>
-                  <SelectItem value={PhoneSystemType.VOIP}>VoIP</SelectItem>
-                </SelectContent>
-              </Select>
+                  value={phoneSystemType || ''}
+                  onValueChange={(value) => {
+                    setValue('phoneSystemType', value as PhoneSystemType);
+                    // Clear dependent fields
+                    setValue('phoneSystemDetails', '');
+                    setValue('phoneSystemVoipType', '');
+                    setValue('callForwardingSupported', undefined);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select phone system type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PhoneSystemType.TRADITIONAL}>Traditional</SelectItem>
+                    <SelectItem value={PhoneSystemType.VOIP}>VoIP</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {errors.phoneSystemType && (
-                <p className="text-sm text-destructive mt-1">{errors.phoneSystemType.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.phoneSystemType.message}</p>
               )}
             </div>
 
@@ -205,10 +204,9 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
                   id="phoneSystemDetails"
                   {...register('phoneSystemDetails')}
                   placeholder="e.g., Avaya IP Office, Panasonic KX-TDE"
-                  className="h-10"
                 />
                 {errors.phoneSystemDetails && (
-                  <p className="text-sm text-destructive mt-1">{errors.phoneSystemDetails.message}</p>
+                  <p className="text-xs text-destructive mt-1">{errors.phoneSystemDetails.message}</p>
                 )}
               </div>
             )}
@@ -220,110 +218,105 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
                 </Label>
                 <div className="relative z-0">
                   <Select
-                  value={watch('phoneSystemVoipType') || ''}
-                  onValueChange={(value) => {
-                    setValue('phoneSystemVoipType', value);
-                    // Auto-fill call forwarding if known
-                    const knowledge = mockDataService.masterData.getPhoneSystemKnowledge(
-                      PhoneSystemType.VOIP,
-                      value
-                    );
-                    if (knowledge?.supportsCallForwarding !== undefined) {
-                      setAutoFilledCallForwarding(knowledge.supportsCallForwarding);
-                      setValue('callForwardingSupported', knowledge.supportsCallForwarding);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select VoIP provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {voipSystems.map(system => (
-                      <SelectItem key={system} value={system}>
-                        {system}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {watch('phoneSystemVoipType') === 'Other' && (
-                  <Input
-                    placeholder="Enter VoIP provider name"
-                    {...register('phoneSystemVoipType')}
-                    className="h-10 mt-2"
-                  />
-                )}
-                {errors.phoneSystemVoipType && (
-                  <p className="text-sm text-destructive mt-1">{errors.phoneSystemVoipType.message}</p>
-                )}
+                    value={watch('phoneSystemVoipType') || ''}
+                    onValueChange={(value) => {
+                      setValue('phoneSystemVoipType', value);
+                      // Auto-fill call forwarding if known
+                      const knowledge = mockDataService.masterData.getPhoneSystemKnowledge(
+                        PhoneSystemType.VOIP,
+                        value
+                      );
+                      if (knowledge?.supportsCallForwarding !== undefined) {
+                        setAutoFilledCallForwarding(knowledge.supportsCallForwarding);
+                        setValue('callForwardingSupported', knowledge.supportsCallForwarding);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select VoIP provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {voipSystems.map(system => (
+                        <SelectItem key={system} value={system}>
+                          {system}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {watch('phoneSystemVoipType') === 'Other' && (
+                    <Input
+                      placeholder="Enter VoIP provider name"
+                      {...register('phoneSystemVoipType')}
+                      className="mt-2"
+                    />
+                  )}
+                  {errors.phoneSystemVoipType && (
+                    <p className="text-xs text-destructive mt-1">{errors.phoneSystemVoipType.message}</p>
+                  )}
                 </div>
               </div>
             )}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Divider */}
-        {phoneSystemType && <div className="border-t border-border my-4"></div>}
+        {/* Separator */}
+        {phoneSystemType && !shouldSkipCallForwarding && <Separator className="my-8" />}
 
         {/* Call Forwarding Section */}
         {phoneSystemType && !shouldSkipCallForwarding && (
-          <Card className="border-2 shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg">Call Forwarding</CardTitle>
-              <CardDescription>
+          <div className="space-y-4 pt-0 pb-8">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-1.5">Call Forwarding</h3>
+              <p className="text-sm text-muted-foreground">
                 Information about call forwarding capabilities
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="callForwardingSupported" className="text-sm font-medium">
-                      Does your phone system support call forwarding?
-                    </Label>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" className="h-5 w-5">
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Call Forwarding Support</DialogTitle>
-                          <DialogDescription>
-                            This question may be skipped if we already know the capabilities of your phone system.
-                          </DialogDescription>
-                        </DialogHeader>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  {autoFilledCallForwarding !== null && (
-                    <Alert className="mt-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        This value was automatically filled from our knowledge base.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="flex items-center space-x-2 pt-1">
-                    <Checkbox
-                      id="callForwardingSupported"
-                      checked={watch('callForwardingSupported') || false}
-                      onCheckedChange={(checked) => setValue('callForwardingSupported', checked as boolean)}
-                    />
-                    <Label htmlFor="callForwardingSupported" className="font-normal text-sm">
-                      Yes, call forwarding is supported
-                    </Label>
-                  </div>
-                </div>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="callForwardingSupported" className="text-sm font-medium">
+                  Does your phone system support call forwarding?
+                </Label>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="h-5 w-5">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Call Forwarding Support</DialogTitle>
+                      <DialogDescription>
+                        This question may be skipped if we already know the capabilities of your phone system.
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
               </div>
-            </CardContent>
-          </Card>
+              {autoFilledCallForwarding !== null && (
+                <Alert className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    This value was automatically filled from our knowledge base.
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div className="flex items-center space-x-2 pt-1">
+                <Checkbox
+                  id="callForwardingSupported"
+                  checked={watch('callForwardingSupported') || false}
+                  onCheckedChange={(checked) => setValue('callForwardingSupported', checked as boolean)}
+                />
+                <Label htmlFor="callForwardingSupported" className="font-normal text-sm">
+                  Yes, call forwarding is supported
+                </Label>
+              </div>
+            </div>
+          </div>
         )}
 
         {shouldSkipCallForwarding && (
-          <Alert className="border-2">
+          <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
               Call forwarding support is known for this phone system. This question has been skipped.
@@ -331,17 +324,18 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
           </Alert>
         )}
 
-        {/* FAX Section */}
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">FAX Configuration</CardTitle>
-            <CardDescription>
-              Information about your FAX requirements
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+        {/* Separator */}
+        <Separator className="my-8" />
 
+        {/* FAX Section */}
+        <div className="space-y-4 pt-0">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1.5">FAX Configuration</h3>
+            <p className="text-sm text-muted-foreground">
+              Information about your FAX requirements
+            </p>
+          </div>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="usesFax" className="text-sm font-medium">Do you currently use FAX?</Label>
               <div className="flex items-center space-x-2 pt-1">
@@ -370,10 +364,9 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
                   id="faxNumber"
                   {...register('faxNumber')}
                   placeholder="+1-555-0101"
-                  className="h-10"
                 />
                 {errors.faxNumber && (
-                  <p className="text-sm text-destructive mt-1">{errors.faxNumber.message}</p>
+                  <p className="text-xs text-destructive mt-1">{errors.faxNumber.message}</p>
                 )}
               </div>
             )}
@@ -396,8 +389,7 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
               </div>
             )}
           </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </form>
   );

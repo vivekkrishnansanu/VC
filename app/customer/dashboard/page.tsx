@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OnboardingStatus } from '@/lib/mock-data/types';
 import Link from 'next/link';
-import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle, LayoutDashboard } from 'lucide-react';
+import { PortalShell } from '@/components/layouts/PortalShell';
 
 export default function CustomerDashboard() {
   const [locations, setLocations] = useState<any[]>([]);
@@ -58,76 +59,85 @@ export default function CustomerDashboard() {
 
   if (locations.length === 0) {
     return (
-      <div className="container mx-auto py-8">
+      <PortalShell
+        title="My locations"
+        description="Complete onboarding for your assigned locations."
+        nav={[
+          { title: "Dashboard", href: "/customer/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+        ]}
+      >
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground">
               No locations assigned. Please contact your Implementation Lead.
             </p>
           </CardContent>
         </Card>
-      </div>
+      </PortalShell>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">My Locations</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Complete onboarding for your locations
-        </p>
-      </div>
-
+    <PortalShell
+      title="My locations"
+      description="Complete onboarding for your assigned locations."
+      nav={[
+        { title: "My locations", href: "/customer/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+      ]}
+    >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {locations.map((location) => {
           const onboarding = mockDataService.onboarding.getByLocationId(location.id);
           const status = onboarding?.status || OnboardingStatus.NOT_STARTED;
-          const canContinue = status === OnboardingStatus.NOT_STARTED || 
-                             status === OnboardingStatus.IN_PROGRESS;
+          const canContinue = status === OnboardingStatus.NOT_STARTED || status === OnboardingStatus.IN_PROGRESS;
 
           return (
-            <Card key={location.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate">{location.name}</CardTitle>
-                    <CardDescription className="mt-1 line-clamp-2">
+            <Card key={location.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-base">{location.name}</CardTitle>
+                    <CardDescription className="mt-1 line-clamp-2 text-xs">
                       {location.addressLine1}, {location.city}, {location.state}
                     </CardDescription>
                   </div>
-                  <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 flex-1 flex flex-col">
-                <div>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
                   {getStatusBadge(status)}
+                  {status === OnboardingStatus.PENDING_APPROVAL ? (
+                    <span className="text-xs text-muted-foreground">Approval required</span>
+                  ) : null}
                 </div>
-                
-                {canContinue && (
-                  <Link href={`/customer/onboarding/${location.id}`} className="mt-auto">
-                    <Button className="w-full">
-                      {status === OnboardingStatus.NOT_STARTED ? 'Start Onboarding' : 'Continue Onboarding'}
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    {status === OnboardingStatus.COMPLETED
+                      ? "Onboarding completed"
+                      : status === OnboardingStatus.PENDING_APPROVAL
+                      ? "Waiting for approval"
+                      : "Continue where you left off"}
+                  </div>
+
+                  {canContinue ? (
+                    <Link href={`/customer/onboarding/${location.id}`}>
+                      <Button size="sm">
+                        {status === OnboardingStatus.NOT_STARTED ? "Start" : "Continue"}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled>
+                      View
                     </Button>
-                  </Link>
-                )}
-
-                {status === OnboardingStatus.PENDING_APPROVAL && (
-                  <p className="text-sm text-muted-foreground text-center mt-auto">
-                    Waiting for approval
-                  </p>
-                )}
-
-                {status === OnboardingStatus.COMPLETED && (
-                  <p className="text-sm text-muted-foreground text-center mt-auto">
-                    Onboarding completed
-                  </p>
-                )}
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
-    </div>
+    </PortalShell>
   );
 }
