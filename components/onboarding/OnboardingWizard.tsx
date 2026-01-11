@@ -10,7 +10,7 @@ import { DevicesStep } from './steps/DevicesStep';
 import { WorkingHoursStep } from './steps/WorkingHoursStep';
 import { CallFlowStep } from './steps/CallFlowStep';
 import { ReviewStep } from './steps/ReviewStep';
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2, Menu, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2, Menu, X, LogOut } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { mockDataService } from '@/lib/mock-data/service';
+import { useAuth } from '@/context/AuthContext';
 
 interface OnboardingWizardProps {
   locationId: string;
@@ -50,6 +51,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     // Fetch skip rules
@@ -302,7 +304,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
         "lg:block",
         showMobileMenu ? "fixed left-0 top-0 bottom-0 z-50 bg-background shadow-lg" : "hidden lg:block"
       )}>
-        <div className="space-y-6 py-4 sm:py-2 pl-4 lg:pl-6">
+        <div className="flex flex-col h-full space-y-6 py-4 sm:py-2 pl-4 lg:pl-6">
           {/* Logo & Close Button */}
           <div className="pb-5 sm:pb-4 border-b border-border flex items-center justify-between">
             <img
@@ -398,6 +400,18 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               );
             })}
           </nav>
+
+          {/* Logout Button - Bottom */}
+          <div className="mt-auto pt-6 border-t border-border">
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              onClick={signOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm font-medium">Sign out</span>
+            </Button>
+          </div>
         </div>
       </aside>
 

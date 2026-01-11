@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OnboardingStatus } from '@/lib/mock-data/types';
 import Link from 'next/link';
-import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle, LogOut } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CustomerDashboard() {
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     // In real app, get from auth context
@@ -79,7 +81,7 @@ export default function CustomerDashboard() {
       <div className="flex h-full w-full gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-6 md:py-6">
         {/* Left Sidebar - Navigation */}
         <aside className="hidden h-full w-64 shrink-0 lg:block border-r border-border pr-6 overflow-y-auto">
-          <div className="space-y-6 py-2">
+          <div className="flex flex-col h-full space-y-6 py-2">
             {/* Logo */}
             <div className="pb-4 border-b border-border">
               <img
@@ -88,6 +90,21 @@ export default function CustomerDashboard() {
                 className="h-6 w-auto"
                 loading="eager"
               />
+            </div>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Logout Button - Bottom */}
+            <div className="pt-6 border-t border-border">
+              <Button
+                variant="secondary"
+                className="w-full justify-start gap-2"
+                onClick={signOut}
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm font-medium">Sign out</span>
+              </Button>
             </div>
           </div>
         </aside>

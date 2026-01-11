@@ -33,8 +33,8 @@ export function PortalShell({ title, description, actions, nav, children }: Port
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
         {/* Sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-6">
-            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+          <div className="sticky top-6 h-[calc(100vh-3rem)] flex flex-col">
+            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm flex flex-col h-full">
               <div className="flex items-center gap-3">
                 <img
                   src="https://voicestack.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvoicestack-logo.91a9d9aa.svg&w=384&q=75&dpl=dpl_6YQQQr5c5yUDQKfyirHUrb7KDZfE"
@@ -78,6 +78,8 @@ export function PortalShell({ title, description, actions, nav, children }: Port
                 })}
               </nav>
 
+              <div className="flex-1" />
+
               <Separator className="my-4" />
 
               <div className="flex items-center gap-3 px-2">
@@ -90,10 +92,10 @@ export function PortalShell({ title, description, actions, nav, children }: Port
                 </div>
               </div>
 
-              <div className="mt-3 px-2">
-                <Button variant="secondary" className="w-full justify-start" onClick={signOut}>
+              <div className="px-2 pb-2">
+                <Button variant="secondary" className="w-full justify-start gap-2" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
-                  Sign out
+                  <span className="text-sm font-medium">Sign out</span>
                 </Button>
               </div>
             </div>
