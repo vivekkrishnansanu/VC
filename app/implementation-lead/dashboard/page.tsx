@@ -68,7 +68,7 @@ export default function ImplementationLeadDashboard() {
         <Link href="/implementation-lead/accounts/create">
           <Button>
             <Plus className="h-4 w-4" />
-            Create account
+            Create New Account
           </Button>
         </Link>
       }

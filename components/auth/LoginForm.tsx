@@ -157,10 +157,10 @@ export default function LoginForm() {
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Signing in
+            Signing in...
           </>
         ) : (
-          "Continue"
+          "Sign In to Dashboard"
         )}
       </Button>
     </form>

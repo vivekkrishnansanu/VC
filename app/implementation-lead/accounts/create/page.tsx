@@ -86,9 +86,9 @@ export default function CreateAccountPage() {
       <div className="mx-auto flex w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
         <main className="min-w-0 flex-1">
           <Link href="/implementation-lead/dashboard">
-            <Button variant="ghost" size="sm" className="mb-6 -ml-2">
+            <Button variant="secondary" size="sm" className="mb-6 -ml-2">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Back to Dashboard
             </Button>
           </Link>
 
@@ -171,7 +171,7 @@ export default function CreateAccountPage() {
 
                 <div className="flex justify-end gap-2 pt-6 border-t">
                   <Button type="button" size="sm" onClick={() => setStep(2)}>
-                    Next: Contacts
+                    Continue to Contacts
                   </Button>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function CreateAccountPage() {
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addContact}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Contact
+                      Add Additional Contact
                     </Button>
                   </div>
 
@@ -246,7 +246,7 @@ export default function CreateAccountPage() {
                           <h4 className="font-medium">Contact {index + 1}</h4>
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
                             onClick={() => removeContact(index)}
                           >
@@ -286,9 +286,9 @@ export default function CreateAccountPage() {
 
                 <div className="flex flex-col-reverse sm:flex-row justify-between gap-2 pt-6 border-t">
                   <Button type="button" variant="outline" size="sm" onClick={() => setStep(1)} className="w-full sm:w-auto">
-                    Back
+                    Back to Account Details
                   </Button>
-                  <Button type="submit" size="sm" className="w-full sm:w-auto">Create Account</Button>
+                  <Button type="submit" size="sm" className="w-full sm:w-auto">Create New Account</Button>
                 </div>
               </div>
             )}

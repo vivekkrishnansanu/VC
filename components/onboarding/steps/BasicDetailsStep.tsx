@@ -171,7 +171,7 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
             <DialogTrigger asChild>
               <Button type="button" variant="outline" size="sm" className="shrink-0">
                 <Copy className="h-4 w-4 mr-2" />
-                Copy from Location
+                Copy from Previous Location
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -212,10 +212,10 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowCopyDialog(false)}>
-                    Cancel
+                    Cancel Copy
                   </Button>
                   <Button type="button" onClick={handleCopyFromLocation}>
-                    Copy
+                    Copy Selected Data
                   </Button>
                 </div>
               </div>

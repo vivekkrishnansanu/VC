@@ -91,7 +91,7 @@ export function PortalShell({ title, description, actions, nav, children }: Port
               </div>
 
               <div className="mt-3 px-2">
-                <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
+                <Button variant="secondary" className="w-full justify-start" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
                   Sign out
                 </Button>
@@ -105,9 +105,9 @@ export function PortalShell({ title, description, actions, nav, children }: Port
           {(title || actions) && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                {title ? <h1 className="text-3xl font-semibold tracking-tight">{title}</h1> : null}
+                {title ? <h1 className="text-2xl font-semibold tracking-tight">{title}</h1> : null}
                 {description ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
                 ) : null}
               </div>
               {actions ? <div className="shrink-0">{actions}</div> : null}

@@ -89,7 +89,7 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
                 {schedule.isOpen && (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     onClick={() => copyToOtherDays(index)}
                   >

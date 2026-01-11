@@ -412,10 +412,10 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               size="sm"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Previous
+              Go to Previous Step
             </Button>
             <Button onClick={handleNext} size="sm">
-              Continue
+              Continue to Next Step
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -427,10 +427,10 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
+                      Submitting for Review...
                     </>
                   ) : (
-                    'Submit Onboarding'
+                    'Submit for Review'
                   )}
                 </Button>
               </DialogTrigger>
@@ -443,7 +443,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                 </DialogHeader>
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => setShowConfirmDialog(false)} className="w-full sm:w-auto">
-                    Cancel
+                    Cancel Submission
                   </Button>
                   <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="w-full sm:w-auto">
                     {isSubmitting ? (
@@ -452,7 +452,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                         Submitting...
                       </>
                     ) : (
-                      'Confirm Submit'
+                      'Confirm and Submit'
                     )}
                   </Button>
                 </div>

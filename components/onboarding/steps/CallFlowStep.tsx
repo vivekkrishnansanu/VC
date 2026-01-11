@@ -180,7 +180,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               <h3 className="text-sm font-semibold text-foreground">IVR Options</h3>
               <Button type="button" size="sm" onClick={addIVROption}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Option
+                Add IVR Option
               </Button>
             </div>
 
@@ -190,7 +190,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   <h4 className="text-sm font-semibold text-foreground">Option {option.optionNumber}</h4>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     onClick={() => removeIVROption(option.id)}
                   >
@@ -292,7 +292,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                       onClick={() => addIVRTarget(option.id)}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Target
+                      Add Ring Target
                     </Button>
                   </div>
 
@@ -396,7 +396,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addDirectTarget}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Target
+                Add Ring Target
               </Button>
             </div>
           </div>

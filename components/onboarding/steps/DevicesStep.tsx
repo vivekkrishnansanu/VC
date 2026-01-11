@@ -298,7 +298,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
             </div>
             <Button type="button" size="sm" onClick={() => setShowAddDevice(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Device
+              Add New Device
             </Button>
           </div>
 
@@ -606,7 +606,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
                   onClick={() => setShowAddDevice(false)} 
                   className="w-full sm:w-auto"
                 >
-                  Cancel
+                  Cancel Adding Device
                 </Button>
                 <Button 
                   type="button" 
@@ -614,7 +614,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
                   className="w-full sm:w-auto"
                   disabled={!newDevice.brand || !newDevice.model || newDevice.model === 'Other'}
                 >
-                  Add Device
+                  Add This Device
                 </Button>
               </div>
             </div>
