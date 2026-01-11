@@ -1,0 +1,14 @@
+import AuthLayout from "@/components/auth/AuthLayout";
+import LoginForm from "@/components/auth/LoginForm";
+
+export default function LoginPage() {
+  return (
+    <AuthLayout
+      title="Sign in to continue"
+      description="Enter your details to access the platform"
+    >
+      <LoginForm />
+    </AuthLayout>
+  );
+}
+

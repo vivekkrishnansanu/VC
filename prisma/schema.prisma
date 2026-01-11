@@ -1,0 +1,580 @@
+// Implementation Automation Platform - Domain Schema
+// Telephony Product Onboarding & Implementation System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  IMPLEMENTATION_LEAD
+  CUSTOMER
+}
+
+enum ProductType {
+  CS_VOICESTACK
+  VOICESTACK
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  PENDING_APPROVAL
+  APPROVED
+  PROVISIONING
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+enum PhoneSystemType {
+  TRADITIONAL
+  VOIP
+}
+
+enum PhoneBrand {
+  YEALINK
+  POLYCOM
+  OTHER
+}
+
+enum PhoneOwnership {
+  OWNED
+  LEASED
+}
+
+enum PhoneAssignmentType {
+  ASSIGNED_TO_USER
+  ASSIGNED_TO_EXTENSION
+  COMMON
+}
+
+enum ContactMedium {
+  EMAIL
+  PHONE
+  SMS
+  PREFERRED_EMAIL
+  PREFERRED_PHONE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalType {
+  PHONE_PURCHASE
+  CREDIT_APPROVAL
+  PROVISIONING
+  CUSTOM
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  SUBMIT
+  APPROVE
+  REJECT
+  COPY
+  INVITE
+  STATUS_CHANGE
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  role          UserRole
+  phone         String?
+  
+  // Relationships
+  accounts      AccountImplementationLead[] @relation("ImplementationLeadAccounts")
+  customerLocations Location[] @relation("CustomerLocations")
+  phoneAssignments Phone[] @relation("AssignedUser")
+  sharedVoicemailUsers SharedVoicemailUser[] @relation("SharedVoicemailUsers")
+  ivrOptionTargets IVROptionTarget[] @relation("IVROptionTargets")
+  
+  // Audit
+  auditLogs     AuditLog[] @relation("UserAuditLogs")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+  
+  @@index([email])
+  @@index([role])
+}
+
+// ============================================================================
+// ACCOUNT
+// ============================================================================
+
+model Account {
+  id                String   @id @default(cuid())
+  name              String
+  productType       ProductType
+  totalLocations    Int      @default(0)
+  accountId         String?  // For CS VoiceStack (future dropdown-based)
+  
+  // Relationships
+  implementationLeads AccountImplementationLead[] @relation("AccountImplementationLeads")
+  locations         Location[] @relation("AccountLocations")
+  contacts         AccountContact[] @relation("AccountContacts")
+  creditInfo        CreditInfo?
+  
+  // Audit
+  auditLogs         AuditLog[] @relation("AccountAuditLogs")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
+  
+  @@index([productType])
+  @@index([createdBy])
+}
+
+model AccountImplementationLead {
+  id          String   @id @default(cuid())
+  accountId   String
+  userId      String
+  account     Account  @relation("AccountImplementationLeads", fields: [accountId], references: [id], onDelete: Cascade)
+  user        User     @relation("ImplementationLeadAccounts", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([accountId, userId])
+  @@index([accountId])
+  @@index([userId])
+}
+
+model AccountContact {
+  id          String   @id @default(cuid())
+  accountId   String
+  name        String
+  phone       String
+  email       String
+  isPrimary   Boolean  @default(false)
+  
+  account     Account  @relation("AccountContacts", fields: [accountId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([accountId])
+  @@index([isPrimary])
+}
+
+model CreditInfo {
+  id          String   @id @default(cuid())
+  accountId   String   @unique
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  // Store but do not fully define yet
+  data        Json?    // Flexible JSON structure for future credit information
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================================================
+// LOCATION
+// ============================================================================
+
+model Location {
+  id              String   @id @default(cuid())
+  accountId       String
+  customerId      String?
+  name            String
+  addressLine1    String
+  addressLine2    String?
+  city            String
+  state           String
+  zipcode         String
+  
+  // Relationships
+  account         Account  @relation("AccountLocations", fields: [accountId], references: [id], onDelete: Cascade)
+  customer        User?    @relation("CustomerLocations", fields: [customerId], references: [id], onDelete: SetNull)
+  onboarding      LocationOnboarding?
+  phones          Phone[]
+  invitations     LocationInvitation[]
+  
+  // Audit
+  auditLogs       AuditLog[] @relation("LocationAuditLogs")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([accountId])
+  @@index([customerId])
+}
+
+model LocationInvitation {
+  id          String   @id @default(cuid())
+  locationId  String
+  email       String
+  token       String   @unique
+  invitedBy   String   // User ID of Implementation Lead
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([locationId])
+  @@index([token])
+  @@index([email])
+}
+
+// ============================================================================
+// ONBOARDING (Location Level)
+// ============================================================================
+
+model LocationOnboarding {
+  id              String   @id @default(cuid())
+  locationId      String   @unique
+  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  status          OnboardingStatus @default(NOT_STARTED)
+  
+  // Basic Details (LL = Location Level, CP = Copy Previous)
+  pocName         String?  // CP, LL
+  pocContact     String?   // CP, LL
+  pocEmail        String?   // CP, LL
+  pocPhone        String?   // CP, LL
+  preferredContactMedium ContactMedium? // CP, LL
+  practiceManagementSoftware String? // LL
+  
+  // Existing Phone System
+  phoneSystemType PhoneSystemType? // LL
+  phoneSystemDetails String? // If Traditional -> text field
+  phoneSystemVoipType String? // If VoIP -> dropdown + "Other"
+  callForwardingSupported Boolean? // LL (skip if known for phone system)
+  usesFax         Boolean? // LL
+  faxNumber       String? // If usesFax = true
+  wantsFaxInVoiceStack Boolean? // If usesFax = false
+  
+  // Phone & Device Details
+  totalDevices    Int?
+  assignmentStrategy PhoneAssignmentType?
+  
+  // Working Hours
+  workingHours    WorkingHoursSchedule[]
+  
+  // Call Flow
+  greetingMessage String?
+  hasIVR          Boolean?
+  callFlow        CallFlow?
+  
+  // Copy tracking
+  copiedFromLocationId String? // Track which location was copied from
+  
+  // Audit
+  auditLogs       AuditLog[] @relation("OnboardingAuditLogs")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  submittedAt     DateTime?
+  completedAt     DateTime?
+  
+  @@index([locationId])
+  @@index([status])
+  @@index([copiedFromLocationId])
+}
+
+// ============================================================================
+// PHONE & DEVICE DETAILS
+// ============================================================================
+
+model Phone {
+  id              String   @id @default(cuid())
+  locationId      String
+  brand           PhoneBrand
+  model           String
+  ownership       PhoneOwnership
+  assignmentType  PhoneAssignmentType
+  assignedUserId  String? // If assigned to user
+  macAddress      String?
+  serialNumber    String?
+  extension       String?
+  isUnsupported   Boolean  @default(false)
+  
+  // Relationships
+  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  assignedUser    User?    @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  purchaseRequest PhonePurchaseRequest?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([locationId])
+  @@index([assignedUserId])
+  @@index([brand, model])
+  @@index([isUnsupported])
+}
+
+model PhonePurchaseRequest {
+  id              String   @id @default(cuid())
+  phoneId         String   @unique
+  phone           Phone    @relation(fields: [phoneId], references: [id], onDelete: Cascade)
+  
+  requestedModel  String
+  quantity        Int      @default(1)
+  unitPrice       Decimal?
+  totalPrice      Decimal?
+  approvalStatus  ApprovalStatus @default(PENDING)
+  approvedBy      String?
+  approvedAt      DateTime?
+  billingAccountId String? // Link to credit info
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([phoneId])
+  @@index([approvalStatus])
+}
+
+model SupportedPhoneModel {
+  id          String   @id @default(cuid())
+  brand       PhoneBrand
+  model       String
+  isActive    Boolean  @default(true)
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([brand, model])
+  @@index([brand, isActive])
+}
+
+// ============================================================================
+// WORKING HOURS
+// ============================================================================
+
+model WorkingHoursSchedule {
+  id              String   @id @default(cuid())
+  onboardingId    String
+  dayOfWeek       DayOfWeek
+  isOpen          Boolean  @default(true)
+  openTime        String?  // Time format (HH:mm)
+  closeTime       String?  // Time format (HH:mm)
+  
+  onboarding      LocationOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([onboardingId, dayOfWeek])
+  @@index([onboardingId])
+}
+
+// ============================================================================
+// CALL FLOW
+// ============================================================================
+
+model CallFlow {
+  id              String   @id @default(cuid())
+  onboardingId    String   @unique
+  onboarding      LocationOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  // Direct routing (if no IVR)
+  directRingType  String? // "users" or "extensions"
+  directRingTargets CallFlowTarget[]
+  
+  // IVR configuration
+  ivrOptions      IVROption[]
+  
+  // Voicemail
+  voicemailScript String?
+  sharedVoicemailUsers SharedVoicemailUser[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model IVROption {
+  id              String   @id @default(cuid())
+  callFlowId      String
+  optionNumber    String   // e.g., "1", "2", "3"
+  script          String?
+  ringType        String   // "users" or "extensions"
+  retryAttempts   Int      @default(0)
+  waitTime        Int?     // seconds
+  invalidSelectionScript String?
+  afterRetriesTarget String? // "voicemail" or specific user/extension
+  voicemailScript String?
+  
+  callFlow        CallFlow @relation(fields: [callFlowId], references: [id], onDelete: Cascade)
+  targets         IVROptionTarget[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([callFlowId])
+}
+
+model IVROptionTarget {
+  id              String   @id @default(cuid())
+  ivrOptionId     String
+  userId          String?  // If ringType is "users"
+  extension       String?  // If ringType is "extensions"
+  order           Int      @default(0) // Ring order
+  
+  ivrOption       IVROption @relation(fields: [ivrOptionId], references: [id], onDelete: Cascade)
+  user            User?     @relation("IVROptionTargets", fields: [userId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([ivrOptionId])
+  @@index([userId])
+}
+
+model CallFlowTarget {
+  id              String   @id @default(cuid())
+  callFlowId      String
+  userId          String?
+  extension       String?
+  order           Int      @default(0) // Ring order
+  
+  callFlow        CallFlow @relation(fields: [callFlowId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([callFlowId])
+  @@index([userId])
+}
+
+model SharedVoicemailUser {
+  id              String   @id @default(cuid())
+  callFlowId      String
+  userId          String
+  
+  callFlow        CallFlow @relation(fields: [callFlowId], references: [id], onDelete: Cascade)
+  user            User     @relation("SharedVoicemailUsers", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([callFlowId, userId])
+  @@index([callFlowId])
+  @@index([userId])
+}
+
+// ============================================================================
+// APPROVALS & WORKFLOWS
+// ============================================================================
+
+model Approval {
+  id              String   @id @default(cuid())
+  type            ApprovalType
+  status          ApprovalStatus @default(PENDING)
+  entityType      String   // "phone_purchase", "credit", "provisioning", etc.
+  entityId        String   // ID of the entity being approved
+  
+  requestedBy     String   // User ID
+  approvedBy      String?
+  rejectedBy      String?
+  comments        String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  
+  @@index([type, status])
+  @@index([entityType, entityId])
+  @@index([requestedBy])
+}
+
+// ============================================================================
+// AUDIT LOGGING
+// ============================================================================
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  action          AuditAction
+  entityType      String   // "account", "location", "onboarding", "phone", etc.
+  entityId        String
+  
+  userId          String?
+  user            User?    @relation("UserAuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Relationships to specific entities
+  accountId       String?
+  account         Account? @relation("AccountAuditLogs", fields: [accountId], references: [id], onDelete: Cascade)
+  locationId      String?
+  location        Location? @relation("LocationAuditLogs", fields: [locationId], references: [id], onDelete: Cascade)
+  onboardingId   String?
+  onboarding      LocationOnboarding? @relation("OnboardingAuditLogs", fields: [onboardingId], references: [id], onDelete: Cascade)
+  
+  changes         Json?    // Store before/after state
+  metadata        Json?    // Additional context
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([accountId])
+  @@index([locationId])
+  @@index([onboardingId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// MASTER DATA & CONFIGURATION
+// ============================================================================
+
+model PhoneSystemKnowledge {
+  id                      String   @id @default(cuid())
+  phoneSystemType        PhoneSystemType
+  phoneSystemName         String
+  phoneSystemDetails      String?
+  supportsCallForwarding  Boolean?
+  notes                   String?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  @@unique([phoneSystemType, phoneSystemName])
+  @@index([phoneSystemType, supportsCallForwarding])
+}
+
+model ExtensionSeries {
+  id              String   @id @default(cuid())
+  locationId      String
+  prefix          String?  // e.g., "100", "200"
+  startRange      Int
+  endRange        Int
+  reservedExtensions Json   @default("[]") // Array of reserved extension numbers (stored as JSON for MySQL)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([locationId])
+}
