@@ -10,7 +10,7 @@ import { DevicesStep } from './steps/DevicesStep';
 import { WorkingHoursStep } from './steps/WorkingHoursStep';
 import { CallFlowStep } from './steps/CallFlowStep';
 import { ReviewStep } from './steps/ReviewStep';
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2, Menu, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     // Fetch skip rules
@@ -275,21 +276,53 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
 
   return (
     <>
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden fixed top-3 left-3 z-50">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          className="h-10 w-10"
+        >
+          {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <div 
+          className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          onClick={() => setShowMobileMenu(false)}
+        />
+      )}
+
       {/* Left Sidebar - Progress & Steps */}
-      <aside className="hidden h-full w-64 shrink-0 lg:block border-r border-border pr-6 overflow-y-auto">
-        <div className="space-y-6 py-2">
-          {/* Logo */}
-          <div className="pb-4 border-b border-border">
+      <aside className={cn(
+        "h-full w-64 shrink-0 border-r border-border pr-6 overflow-y-auto transition-transform duration-300",
+        "lg:block",
+        showMobileMenu ? "fixed left-0 top-0 bottom-0 z-50 bg-background shadow-lg" : "hidden lg:block"
+      )}>
+        <div className="space-y-6 py-4 sm:py-2 pl-4 lg:pl-6">
+          {/* Logo & Close Button */}
+          <div className="pb-5 sm:pb-4 border-b border-border flex items-center justify-between">
             <img
               src="https://voicestack.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvoicestack-logo.91a9d9aa.svg&w=384&q=75&dpl=dpl_6YQQQr5c5yUDQKfyirHUrb7KDZfE"
               alt="VoiceStack"
               className="h-6 w-auto"
               loading="eager"
             />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMobileMenu(false)}
+              className="lg:hidden h-9 w-9"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Progress Header */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Progress
@@ -298,11 +331,11 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                 {Math.round(progress)}%
               </span>
             </div>
-            <Progress value={progress} className="h-1.5" />
+            <Progress value={progress} className="h-2" />
           </div>
 
           {/* Step List */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {steps.map((step, index) => {
               const isCompleted = completedSteps.includes(step.key);
               const isCurrent = index === currentStepIndex;
@@ -314,10 +347,13 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               return (
                 <button
                   key={step.key}
-                  onClick={() => handleStepClick(index)}
+                  onClick={() => {
+                    handleStepClick(index);
+                    setShowMobileMenu(false);
+                  }}
                   disabled={!isAccessible}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors",
+                    "w-full flex items-center gap-3.5 py-3.5 sm:py-2.5 rounded-lg text-left transition-colors min-h-[48px] sm:min-h-0",
                     isCurrent
                       ? "bg-muted text-foreground"
                       : isCompleted
@@ -329,7 +365,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 text-xs font-semibold transition-colors",
+                      "flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full flex-shrink-0 text-xs font-semibold transition-colors",
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : isCompleted
@@ -338,21 +374,21 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                     )}
                   >
                     {isCompleted ? (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                     ) : (
                       stepNumber
                     )}
                   </div>
-                  <span className="text-sm font-medium flex-1">{step.label}</span>
+                  <span className="text-sm font-medium flex-1 leading-snug">{step.label}</span>
                   {hasIssues && (
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <AlertTriangle className={cn(
-                        "h-3.5 w-3.5 shrink-0",
+                        "h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0",
                         issues.errors > 0 ? "text-destructive" : "text-amber-500"
                       )} />
                       <Badge 
                         variant={issues.errors > 0 ? "destructive" : "secondary"}
-                        className="h-4 min-w-[1.25rem] px-1.5 text-[10px] font-semibold leading-none flex items-center justify-center"
+                        className="h-5 min-w-[1.5rem] px-1.5 text-[11px] sm:text-[10px] font-semibold leading-none flex items-center justify-center"
                       >
                         {issues.errors > 0 ? issues.errors : issues.warnings}
                       </Badge>
@@ -367,26 +403,42 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
 
       {/* Main Content Area */}
       <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Step Indicator */}
+        <div className="lg:hidden mb-5 sm:mb-4 pt-14 sm:pt-12 pb-3 sm:pb-2">
+          <div className="flex items-center justify-between mb-3 sm:mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Step {currentStepIndex + 1} of {steps.length}
+            </span>
+            <span className="text-xs font-semibold text-foreground">
+              {Math.round(progress)}%
+            </span>
+          </div>
+          <Progress value={progress} className="h-2 mb-4 sm:mb-3" />
+          <h2 className="text-base font-semibold tracking-tight text-foreground leading-tight">
+            {currentStep.label}
+          </h2>
+        </div>
+
         {/* Scrollable Content Container */}
         <div className="flex-1 overflow-y-auto overscroll-contain" data-scroll-container>
           {/* Page Header */}
-          <div className="mb-4">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1">
+          <div className="mb-4 sm:mb-5">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mb-1.5 sm:mb-1 leading-tight">
               {locationName}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               Complete your setup to get started with VoiceStack
             </p>
           </div>
-          <Separator className="mb-4" />
+          <Separator className="mb-4 sm:mb-5" />
 
-          {/* Step Header */}
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          {/* Step Header - Desktop Only */}
+          <div className="hidden lg:block mb-5">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground leading-tight">
               Step {currentStepIndex + 1} of {steps.length}: {currentStep.label}
             </h2>
           </div>
-          <Separator className="mb-6" />
+          <Separator className="hidden lg:block mb-6" />
 
           {/* Step Content */}
           <div className="overflow-visible">
@@ -404,26 +456,29 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
 
         {/* Navigation Buttons - Fixed at bottom */}
         {currentStep.key !== OnboardingStep.REVIEW ? (
-          <div className="flex items-center justify-between gap-3 pt-6 pb-2 border-t shrink-0 bg-background">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 pt-4 sm:pt-6 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStepIndex === 0}
-              size="sm"
+              size="default"
+              className="flex-1 sm:flex-initial min-h-[44px] text-sm sm:text-xs"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Go to Previous Step
+              <ArrowLeft className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Go to Previous Step</span>
+              <span className="sm:hidden">Previous</span>
             </Button>
-            <Button onClick={handleNext} size="sm">
-              Continue to Next Step
-              <ArrowRight className="h-4 w-4 ml-2" />
+            <Button onClick={handleNext} size="default" className="flex-1 sm:flex-initial min-h-[44px] text-sm sm:text-xs">
+              <span className="hidden sm:inline">Continue to Next Step</span>
+              <span className="sm:hidden">Next</span>
+              <ArrowRight className="h-4 w-4 ml-1 sm:ml-2" />
             </Button>
           </div>
         ) : (
-          <div className="flex items-center justify-end gap-3 pt-6 pb-2 border-t shrink-0 bg-background">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 pt-4 sm:pt-6 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
             <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
               <DialogTrigger asChild>
-                <Button disabled={!canSubmit || isSubmitting} size="default" className="w-full sm:w-auto">
+                <Button disabled={!canSubmit || isSubmitting} size="default" className="w-full sm:w-auto min-h-[44px]">
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

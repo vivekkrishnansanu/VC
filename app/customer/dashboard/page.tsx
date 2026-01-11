@@ -76,7 +76,7 @@ export default function CustomerDashboard() {
 
   return (
     <div className="h-screen bg-background overflow-hidden">
-      <div className="flex h-full w-full gap-6 px-4 py-4 sm:px-6 sm:py-6">
+      <div className="flex h-full w-full gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-6 md:py-6">
         {/* Left Sidebar - Navigation */}
         <aside className="hidden h-full w-64 shrink-0 lg:block border-r border-border pr-6 overflow-y-auto">
           <div className="space-y-6 py-2">
@@ -96,15 +96,15 @@ export default function CustomerDashboard() {
         <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto overscroll-contain">
             {/* Page Header */}
-            <div className="mb-4">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1">
+            <div className="mb-3 sm:mb-4">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mb-1">
                 My locations
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Complete onboarding for your assigned locations.
               </p>
             </div>
-            <Separator className="mb-6" />
+            <Separator className="mb-4 sm:mb-6" />
 
             {/* Locations List */}
             <div className="space-y-4">
@@ -116,21 +116,21 @@ export default function CustomerDashboard() {
                 return (
                   <div
                     key={location.id}
-                    className="rounded-lg border border-border bg-background p-5"
+                    className="rounded-lg border border-border bg-background p-4 sm:p-5"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                      <div className="min-w-0 flex-1 space-y-2 sm:space-y-3">
                         <div>
                           <h3 className="text-base font-semibold text-foreground mb-1.5">{location.name}</h3>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span>{location.addressLine1}, {location.city}, {location.state}</span>
+                            <span className="break-words">{location.addressLine1}, {location.city}, {location.state}</span>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                           {getStatusBadge(status)}
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {status === OnboardingStatus.COMPLETED
                               ? "Onboarding completed"
                               : status === OnboardingStatus.PENDING_APPROVAL
@@ -140,15 +140,15 @@ export default function CustomerDashboard() {
                         </div>
                       </div>
 
-                      <div className="shrink-0">
+                      <div className="shrink-0 w-full sm:w-auto">
                         {canContinue ? (
-                          <Link href={`/customer/onboarding/${location.id}`}>
-                            <Button size="sm">
+                          <Link href={`/customer/onboarding/${location.id}`} className="block">
+                            <Button size="default" className="w-full sm:w-auto min-h-[44px]">
                               {status === OnboardingStatus.NOT_STARTED ? "Start Onboarding" : "Continue Onboarding"}
                             </Button>
                           </Link>
                         ) : (
-                          <Button size="sm" variant="outline" disabled>
+                          <Button size="default" variant="outline" disabled className="w-full sm:w-auto min-h-[44px]">
                             View Details
                           </Button>
                         )}

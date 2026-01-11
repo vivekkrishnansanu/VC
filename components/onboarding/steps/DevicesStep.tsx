@@ -208,10 +208,10 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
       {/* Form Sections - Untitled UI Style */}
       <div className="space-y-8">
         {/* Device Overview Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">Device Overview</h3>
-            <p className="text-sm text-muted-foreground">
+        <div className="space-y-5">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-foreground">Device Overview</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Configure the total number of devices and assignment strategy
             </p>
           </div>
@@ -288,11 +288,11 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
         </div>
 
         {/* Devices List Section */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">Devices</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">Devices</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {devices.length} device{devices.length !== 1 ? 's' : ''} added
               </p>
             </div>
@@ -313,7 +313,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
               {devices.map((device, index) => (
                 <div
                   key={device.id}
-                  className={`p-4 border rounded-lg space-y-3 ${device.isUnsupported ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                  className={`p-3 sm:p-4 border rounded-lg space-y-3 ${device.isUnsupported ? 'border-destructive/50 bg-destructive/5' : ''}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

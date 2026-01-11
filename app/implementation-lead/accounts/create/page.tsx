@@ -83,7 +83,7 @@ export default function CreateAccountPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl gap-4 sm:gap-8 px-3 sm:px-4 py-4 sm:py-8 lg:px-8">
         <main className="min-w-0 flex-1">
           <Link href="/implementation-lead/dashboard">
             <Button variant="secondary" size="sm" className="mb-6 -ml-2">
@@ -92,9 +92,9 @@ export default function CreateAccountPage() {
             </Button>
           </Link>
 
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight">Create New Account</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Create New Account</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Step {step} of 2: {step === 1 ? 'Account Details' : 'Contacts'}
             </p>
           </div>

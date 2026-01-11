@@ -158,10 +158,10 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
       {/* Form Sections - Untitled UI Style */}
       <div className="space-y-0">
         {/* Phone System Type Section */}
-        <div className="space-y-4 pb-8">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-1.5">System Type</h3>
-            <p className="text-sm text-muted-foreground">
+        <div className="space-y-5 pb-8 sm:pb-10">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-foreground">System Type</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Select the type of phone system you currently use
             </p>
           </div>
@@ -265,7 +265,7 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
 
         {/* Call Forwarding Section */}
         {phoneSystemType && !shouldSkipCallForwarding && (
-          <div className="space-y-4 pt-0 pb-8">
+          <div className="space-y-5 pt-0 pb-8 sm:pb-10">
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-1.5">Call Forwarding</h3>
               <p className="text-sm text-muted-foreground">

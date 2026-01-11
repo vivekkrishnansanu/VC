@@ -128,9 +128,9 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-8 overflow-visible">
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-1">Call Flow Configuration</h3>
-        <p className="text-sm text-muted-foreground">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">Call Flow Configuration</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Configure how calls are routed and handled
         </p>
       </div>
@@ -185,7 +185,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
             </div>
 
             {ivrOptions.map((option, index) => (
-              <div key={option.id} className="p-4 border rounded-lg space-y-4">
+              <div key={option.id} className="p-3 sm:p-4 border rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-foreground">Option {option.optionNumber}</h4>
                   <Button

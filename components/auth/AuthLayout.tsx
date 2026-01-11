@@ -23,23 +23,23 @@ export default function AuthLayout({ children, title, description }: AuthLayoutP
       </div>
 
       {/* Top bar */}
-      <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
+      <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-6">
         <img
           src="https://voicestack.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvoicestack-logo.91a9d9aa.svg&w=384&q=75&dpl=dpl_6YQQQr5c5yUDQKfyirHUrb7KDZfE"
           alt="VoiceStack"
-          className="h-6 w-auto"
+          className="h-5 sm:h-6 w-auto"
           loading="eager"
         />
         <a
           href="mailto:support@voicestack.com"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-xs sm:text-sm text-muted-foreground hover:text-foreground hidden sm:inline"
         >
           Need help? <span className="font-medium">support@voicestack.com</span>
         </a>
       </div>
 
       {/* Centered auth card */}
-      <div className="relative mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-6xl items-center justify-center px-6 pb-12">
+      <div className="relative mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-6xl items-center justify-center px-4 sm:px-6 pb-8 sm:pb-12">
         <div className="relative w-full max-w-md">
           {/* crisp ring like Untitled */}
           <div className="pointer-events-none absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-primary/25 via-primary/10 to-transparent" />

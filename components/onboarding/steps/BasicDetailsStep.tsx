@@ -227,14 +227,14 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
       {/* Form Sections - Untitled UI Style */}
       <div className="space-y-0">
         {/* Contact Information Section */}
-        <div className="space-y-4 pb-8">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-1.5">Contact Information</h3>
-            <p className="text-sm text-muted-foreground">
+        <div className="space-y-5 pb-8 sm:pb-10">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-foreground">Contact Information</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Primary point of contact for this location
             </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2">
             <div className="space-y-2.5">
               <Label htmlFor="pocName" className="text-sm font-medium">
                 Point of Contact Name <span className="text-destructive">*</span>
@@ -304,17 +304,17 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
         </div>
 
         {/* Separator */}
-        <Separator className="my-8" />
+        <Separator className="my-8 sm:my-10" />
 
         {/* Practice Details Section */}
-        <div className="space-y-4 pt-0">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+        <div className="space-y-5 pt-0">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-foreground">Practice Details</h3>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="h-4 w-4">
-                    <Info className="h-3.5 w-3.5" />
+                  <Button type="button" variant="ghost" size="icon" className="h-5 w-5">
+                    <Info className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -328,7 +328,7 @@ export function BasicDetailsStep({ locationId, onComplete, skipRules }: BasicDet
                 </DialogContent>
               </Dialog>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Information about your practice management system
             </p>
           </div>

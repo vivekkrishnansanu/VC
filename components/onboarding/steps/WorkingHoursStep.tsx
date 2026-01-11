@@ -63,16 +63,16 @@ export function WorkingHoursStep({ locationId, onComplete, skipRules }: WorkingH
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-8">
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-1">Working Hours</h3>
-        <p className="text-sm text-muted-foreground">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">Working Hours</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Set operating hours for each day of the week
         </p>
       </div>
 
       <div className="space-y-6">
         {schedules.map((schedule, index) => (
-          <div key={schedule.day} className="space-y-4 p-4 border rounded-lg">
+          <div key={schedule.day} className="space-y-4 p-3 sm:p-4 border rounded-lg">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
