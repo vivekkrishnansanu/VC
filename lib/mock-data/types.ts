@@ -44,6 +44,17 @@ export enum PhoneBrand {
   OTHER = 'OTHER',
 }
 
+export enum DeviceType {
+  DESKPHONE = 'DESKPHONE',
+  SOFTPHONE = 'SOFTPHONE',
+  MOBILE = 'MOBILE',
+}
+
+export enum DeviceOwnership {
+  OWNED = 'OWNED',
+  NOT_OWNED = 'NOT_OWNED',
+}
+
 export enum PhoneOwnership {
   OWNED = 'OWNED',
   LEASED = 'LEASED',
@@ -52,6 +63,10 @@ export enum PhoneOwnership {
 export enum PhoneAssignmentType {
   ASSIGNED_TO_USER = 'ASSIGNED_TO_USER',
   ASSIGNED_TO_EXTENSION = 'ASSIGNED_TO_EXTENSION',
+  /**
+   * Deprecated in the new UX.
+   * Treat COMMON as ASSIGNED_TO_EXTENSION.
+   */
   COMMON = 'COMMON',
 }
 
@@ -101,6 +116,11 @@ export interface Account {
   productType: ProductType;
   totalLocations: number;
   accountId?: string; // For CS VoiceStack
+  
+  // NEW: Dashboard aggregation fields (computed or cached)
+  warningCount?: number; // Count of locations with warnings
+  blockerCount?: number; // Count of locations with blockers
+  
   contacts: AccountContact[];
   createdAt: Date;
   updatedAt: Date;
@@ -143,14 +163,41 @@ export interface LocationOnboarding {
   faxNumber?: string;
   wantsFaxInVoiceStack?: boolean;
   
-  // Phone & Device Details
+  // Device Ownership & Purchase Flow (NEW)
+  deviceOwnership?: DeviceOwnership; // OWNED | NOT_OWNED (asked once per location)
+  hasYealinkOrPolycom?: boolean; // If deviceOwnership = OWNED
+  buyPhonesThroughVoiceStack?: boolean; // Purchase decision
+  /**
+   * Optional lightweight “catalog” selection. When buyPhonesThroughVoiceStack=true,
+   * we can store what was selected without requiring per-device details.
+   */
+  deviceCatalogSelections?: Array<{
+    brand: PhoneBrand;
+    model: string;
+    quantity: number;
+    deviceTypes?: DeviceType[];
+  }>;
+
+  // Phone & Device Details (Legacy)
   totalDevices?: number;
+  /**
+   * Deprecated in the new UX. Assignment now lives per device card.
+   */
   assignmentStrategy?: PhoneAssignmentType;
   
   // Call Flow
   greetingMessage?: string;
   hasIVR?: boolean;
   ivrOptions?: IVROption[];
+  /**
+   * New IVR layout globals (shown outside options when IVR is enabled).
+   * For backward compatibility, these can be copied into each option payload when generating provisioning.
+   */
+  ivrScript?: string;
+  ivrRetryAttempts?: number;
+  ivrWaitTime?: number;
+  ivrInvalidSelectionScript?: string;
+  ivrAfterRetriesTarget?: string;
   voicemailScript?: string;
   sharedVoicemailUsers?: string[];
   directRingUsers?: string[];
@@ -172,22 +219,30 @@ export interface IVROptionTarget {
 
 export interface IVROption {
   id: string;
-  optionNumber: string;
-  script: string;
+  optionNumber: string; // DTMF digit (e.g., "1", "2", "3")
+  label?: string; // Optional label/description (replaces script field in new UX)
+  /**
+   * @deprecated In new UX, IVR script is global. This field kept for backward compatibility.
+   */
+  script?: string;
   ringType: 'users' | 'extensions';
   targets: IVROptionTarget[];
-  retryAttempts: number;
-  waitTime: number;
-  invalidSelectionScript: string;
-  afterRetriesTarget: string;
-  voicemailScript: string;
+  /**
+   * @deprecated Global IVR fields moved to LocationOnboarding level.
+   * These are kept for backward compatibility but should not be used in new code.
+   */
+  retryAttempts?: number;
+  waitTime?: number;
+  invalidSelectionScript?: string;
+  afterRetriesTarget?: string;
+  voicemailScript?: string;
 }
 
 export interface Phone {
   id: string;
   locationId: string;
   brand: PhoneBrand;
-  model: string;
+  model: string; // Free text if brand = OTHER
   ownership: PhoneOwnership;
   assignmentType: PhoneAssignmentType;
   assignedUserId?: string;
@@ -195,6 +250,12 @@ export interface Phone {
   serialNumber?: string;
   extension?: string;
   isUnsupported: boolean;
+  
+  // NEW: Device Type & Warnings
+  deviceTypes?: DeviceType[]; // Multi-select: DESKPHONE, SOFTPHONE, MOBILE
+  hasWarnings?: boolean;
+  warningReason?: string; // Reason for warning state
+  
   createdAt: Date;
   updatedAt: Date;
 }

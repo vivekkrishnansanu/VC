@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Plus, X, Info } from 'lucide-react';
 import {
@@ -23,15 +24,10 @@ import {
 
 interface IVROption {
   id: string;
-  optionNumber: string;
-  script: string;
+  optionNumber: string; // DTMF digit
+  label?: string; // Optional label
   ringType: 'users' | 'extensions';
   targets: Array<{ userId?: string; extension?: string }>;
-  retryAttempts: number;
-  waitTime: number;
-  invalidSelectionScript: string;
-  afterRetriesTarget: string;
-  voicemailScript: string;
 }
 
 interface CallFlowStepProps {
@@ -43,6 +39,11 @@ interface CallFlowStepProps {
 export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStepProps) {
   const [hasIVR, setHasIVR] = useState(false);
   const [greetingMessage, setGreetingMessage] = useState('');
+  const [ivrScript, setIvrScript] = useState('');
+  const [ivrRetryAttempts, setIvrRetryAttempts] = useState<number>(0);
+  const [ivrWaitTime, setIvrWaitTime] = useState<number>(30);
+  const [ivrInvalidSelectionScript, setIvrInvalidSelectionScript] = useState('');
+  const [ivrAfterRetriesTarget, setIvrAfterRetriesTarget] = useState<string>('');
   const [directRingType, setDirectRingType] = useState<'users' | 'extensions'>('users');
   const [directTargets, setDirectTargets] = useState<Array<{ userId?: string; extension?: string }>>([]);
   const [ivrOptions, setIvrOptions] = useState<IVROption[]>([]);
@@ -56,7 +57,23 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
     if (onboarding) {
       setHasIVR(onboarding.hasIVR || false);
       setGreetingMessage(onboarding.greetingMessage || '');
+      setIvrScript(onboarding.ivrScript || onboarding.greetingMessage || '');
+      setIvrRetryAttempts(onboarding.ivrRetryAttempts || 0);
+      setIvrWaitTime(onboarding.ivrWaitTime || 30);
+      setIvrInvalidSelectionScript(onboarding.ivrInvalidSelectionScript || '');
+      setIvrAfterRetriesTarget(onboarding.ivrAfterRetriesTarget || '');
       setVoicemailScript(onboarding.voicemailScript || onboarding.greetingMessage || '');
+      
+      // Load IVR options (simplified)
+      if (onboarding.ivrOptions) {
+        setIvrOptions(onboarding.ivrOptions.map(opt => ({
+          id: opt.id || `opt-${Date.now()}`,
+          optionNumber: opt.optionNumber,
+          label: opt.label || opt.script,
+          ringType: opt.ringType,
+          targets: opt.targets || [],
+        })));
+      }
     }
   }, [locationId]);
 
@@ -67,14 +84,9 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
       {
         id: `ivr-${Date.now()}`,
         optionNumber,
-        script: '',
+        label: '',
         ringType: 'users',
         targets: [],
-        retryAttempts: 0,
-        waitTime: 30,
-        invalidSelectionScript: '',
-        afterRetriesTarget: 'voicemail',
-        voicemailScript: '',
       },
     ]);
   };
@@ -87,6 +99,29 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
     setIvrOptions(ivrOptions.map(opt => 
       opt.id === id ? { ...opt, [field]: value } : opt
     ));
+  };
+
+  const handleSave = async () => {
+    await fetch('/api/onboarding/data', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locationId,
+        patch: {
+          hasIVR,
+          greetingMessage,
+          ivrScript: hasIVR ? ivrScript : undefined,
+          ivrRetryAttempts: hasIVR ? ivrRetryAttempts : undefined,
+          ivrWaitTime: hasIVR ? ivrWaitTime : undefined,
+          ivrInvalidSelectionScript: hasIVR ? ivrInvalidSelectionScript : undefined,
+          ivrAfterRetriesTarget: hasIVR ? ivrAfterRetriesTarget : undefined,
+          ivrOptions: hasIVR ? ivrOptions : undefined,
+          voicemailScript,
+          sharedVoicemailUsers,
+        },
+      }),
+    });
+    onComplete();
   };
 
   const addIVRTarget = (optionId: string) => {
@@ -114,16 +149,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
   };
 
   const onSubmit = async () => {
-    console.log('Saving call flow:', {
-      hasIVR,
-      greetingMessage,
-      directRingType,
-      directTargets,
-      ivrOptions,
-      voicemailScript,
-      sharedVoicemailUsers,
-    });
-    onComplete();
+    await handleSave();
   };
 
   return (
@@ -176,166 +202,184 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
 
         {hasIVR && !shouldSkipIVR ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">IVR Options</h3>
+            {/* IVR Script at Top */}
+            <div className="space-y-2">
+              <Label htmlFor="ivrScript" className="text-sm font-medium">
+                IVR Script <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="ivrScript"
+                value={ivrScript}
+                onChange={(e) => setIvrScript(e.target.value)}
+                placeholder="Thank you for calling. Please listen to the following options..."
+                rows={3}
+              />
+            </div>
+
+            {/* Add Option Button */}
+            <div className="flex justify-end">
               <Button type="button" size="sm" onClick={addIVROption}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add IVR Option
+                Add Option
               </Button>
             </div>
 
-            {ivrOptions.map((option, index) => (
-              <div key={option.id} className="p-3 sm:p-4 border rounded-lg space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-foreground">Option {option.optionNumber}</h4>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => removeIVROption(option.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Option Script</Label>
-                    <Textarea
-                      value={option.script}
-                      onChange={(e) => updateIVROption(option.id, 'script', e.target.value)}
-                      placeholder="Press 1 for sales, Press 2 for support..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Ring Type</Label>
-                      <div className="relative z-0">
-                        <Select
-                        value={option.ringType}
-                        onValueChange={(value) => updateIVROption(option.id, 'ringType', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="users">Users</SelectItem>
-                          <SelectItem value="extensions">Extensions</SelectItem>
-                        </SelectContent>
-                      </Select>
+            {/* IVR Options List */}
+            {ivrOptions.length > 0 && (
+              <div className="space-y-4">
+                {ivrOptions.map((option) => (
+                  <Card key={option.id} className="bg-gradient-to-br from-card to-card/50 border-border/60">
+                    <CardContent className="p-5 space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-base font-bold text-foreground">
+                          Option {option.optionNumber}
+                        </h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeIVROption(option.id)}
+                          className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Option Label (Optional)</Label>
+                          <Input
+                            value={option.label || ''}
+                            onChange={(e) => updateIVROption(option.id, 'label', e.target.value)}
+                            placeholder="Press 1 for sales"
+                            className="bg-background"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Ring Type</Label>
+                          <Select
+                            value={option.ringType}
+                            onValueChange={(value) => updateIVROption(option.id, 'ringType', value as 'users' | 'extensions')}
+                          >
+                            <SelectTrigger className="bg-background">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="users">Users</SelectItem>
+                              <SelectItem value="extensions">Extensions</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-sm font-semibold">Routing Targets</Label>
+                          <div className="space-y-2">
+                            {option.targets.map((target, targetIndex) => (
+                              <div key={targetIndex} className="flex gap-2">
+                                {option.ringType === 'users' ? (
+                                  <Input
+                                    placeholder="User ID or Email"
+                                    value={target.userId || ''}
+                                    onChange={(e) => {
+                                      const updated = [...option.targets];
+                                      updated[targetIndex] = { ...target, userId: e.target.value };
+                                      updateIVROption(option.id, 'targets', updated);
+                                    }}
+                                    className="bg-background"
+                                  />
+                                ) : (
+                                  <Input
+                                    placeholder="Extension"
+                                    value={target.extension || ''}
+                                    onChange={(e) => {
+                                      const updated = [...option.targets];
+                                      updated[targetIndex] = { ...target, extension: e.target.value };
+                                      updateIVROption(option.id, 'targets', updated);
+                                    }}
+                                    className="bg-background"
+                                  />
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeIVRTarget(option.id, targetIndex)}
+                                  className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addIVRTarget(option.id)}
+                            className="w-full sm:w-auto"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Target
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Retry Attempts</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={option.retryAttempts}
-                        onChange={(e) => updateIVROption(option.id, 'retryAttempts', parseInt(e.target.value))}
-                      />
-                    </div>
-                  </div>
-
+            {/* Global IVR Settings (shown below options) */}
+            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-border/60">
+              <CardContent className="p-6 space-y-5">
+                <h4 className="text-base font-bold text-foreground">Global IVR Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Wait Time (seconds)</Label>
+                    <Label className="text-sm font-semibold">Retry Attempts</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={option.waitTime}
-                      onChange={(e) => updateIVROption(option.id, 'waitTime', parseInt(e.target.value))}
+                      value={ivrRetryAttempts}
+                      onChange={(e) => setIvrRetryAttempts(parseInt(e.target.value) || 0)}
+                      className="bg-background"
                     />
                   </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Targets to Ring</Label>
-                    <div className="space-y-2">
-                      {option.targets.map((target, targetIndex) => (
-                        <div key={targetIndex} className="flex gap-2">
-                          {option.ringType === 'users' ? (
-                            <Input
-                              placeholder="User ID or Email"
-                              value={target.userId || ''}
-                              onChange={(e) => {
-                                const updated = [...option.targets];
-                                updated[targetIndex] = { ...target, userId: e.target.value };
-                                updateIVROption(option.id, 'targets', updated);
-                              }}
-                            />
-                          ) : (
-                            <Input
-                              placeholder="Extension"
-                              value={target.extension || ''}
-                              onChange={(e) => {
-                                const updated = [...option.targets];
-                                updated[targetIndex] = { ...target, extension: e.target.value };
-                                updateIVROption(option.id, 'targets', updated);
-                              }}
-                            />
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeIVRTarget(option.id, targetIndex)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addIVRTarget(option.id)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Ring Target
-                    </Button>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Invalid Selection Script</Label>
-                    <Textarea
-                      value={option.invalidSelectionScript}
-                      onChange={(e) => updateIVROption(option.id, 'invalidSelectionScript', e.target.value)}
-                      placeholder="Invalid selection. Please try again..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">After Retries</Label>
-                    <div className="relative z-0">
-                      <Select
-                        value={option.afterRetriesTarget}
-                        onValueChange={(value) => updateIVROption(option.id, 'afterRetriesTarget', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="voicemail">Go to Voicemail</SelectItem>
-                          <SelectItem value="operator">Operator</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Voicemail Script</Label>
-                    <Textarea
-                      value={option.voicemailScript}
-                      onChange={(e) => updateIVROption(option.id, 'voicemailScript', e.target.value)}
-                      placeholder="Please leave a message after the tone..."
-                      rows={2}
+                    <Label className="text-sm font-semibold">Wait Time (seconds)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={ivrWaitTime}
+                      onChange={(e) => setIvrWaitTime(parseInt(e.target.value) || 0)}
+                      className="bg-background"
                     />
                   </div>
                 </div>
-              </div>
-            ))}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Invalid Selection Script</Label>
+                  <Textarea
+                    value={ivrInvalidSelectionScript}
+                    onChange={(e) => setIvrInvalidSelectionScript(e.target.value)}
+                    placeholder="Invalid selection. Please try again..."
+                    rows={2}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">After Retry Routing</Label>
+                  <Select
+                    value={ivrAfterRetriesTarget}
+                    onValueChange={setIvrAfterRetriesTarget}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select routing target" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="voicemail">Go to Voicemail</SelectItem>
+                      <SelectItem value="operator">Operator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div className="space-y-4 overflow-visible">

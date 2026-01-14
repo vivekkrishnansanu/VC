@@ -62,6 +62,47 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
   }, [locationId]);
 
   useEffect(() => {
+    // Check if can submit (including approval checks)
+    const checkCanSubmit = async () => {
+      try {
+        const response = await fetch(`/api/onboarding/session?locationId=${locationId}`);
+        const sessionData = await response.json();
+        
+        if (sessionData) {
+          // Check for pending approvals
+          const approvalsResponse = await fetch(`/api/approvals?locationId=${locationId}`);
+          const approvalsData = await approvalsResponse.json();
+          const hasPendingApprovals = approvalsData.pendingApprovals?.length > 0 || false;
+          
+          // Check validation
+          const validationResponse = await fetch('/api/validation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locationId, type: 'onboarding' }),
+          });
+          const validationData = await validationResponse.json();
+          
+          const phones = mockDataService.phones.getByLocationId(locationId);
+          const unsupportedPhones = phones.filter(p => p.isUnsupported);
+          
+          setCanSubmit(
+            !hasPendingApprovals &&
+            validationData?.isValid &&
+            unsupportedPhones.length === 0 &&
+            !sessionData.isLocked
+          );
+        } else {
+          setCanSubmit(false);
+        }
+      } catch (error) {
+        setCanSubmit(false);
+      }
+    };
+
+    if (currentStep.key === OnboardingStep.REVIEW) {
+      checkCanSubmit();
+    }
+
     // Check for issues in each step
     const checkStepIssues = async () => {
       const issues: Record<OnboardingStep, { warnings: number; errors: number }> = {} as any;
@@ -116,19 +157,29 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
     const isReviewStep = currentStepKey === OnboardingStep.REVIEW;
     
     if (isReviewStep) {
-      fetch('/api/validation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locationId,
-          type: 'onboarding',
-        }),
-      })
-        .then(res => res.json())
-        .then(data => {
+      Promise.all([
+        fetch('/api/validation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locationId,
+            type: 'onboarding',
+          }),
+        }).then(res => res.json()),
+        fetch(`/api/approvals?locationId=${locationId}`).then(res => res.json()).catch(() => ({ pendingApprovals: [] })),
+        fetch(`/api/onboarding/session?locationId=${locationId}`).then(res => res.json()).catch(() => ({ isLocked: false })),
+      ])
+        .then(([validationData, approvalsData, sessionData]) => {
           const phones = mockDataService.phones.getByLocationId(locationId);
           const unsupportedPhones = phones.filter(p => p.isUnsupported);
-          setCanSubmit(data?.isValid && unsupportedPhones.length === 0);
+          const hasPendingApprovals = approvalsData.pendingApprovals?.length > 0 || false;
+          
+          setCanSubmit(
+            validationData?.isValid &&
+            unsupportedPhones.length === 0 &&
+            !hasPendingApprovals &&
+            !sessionData.isLocked
+          );
         })
         .catch(() => setCanSubmit(false));
     } else {
@@ -300,17 +351,16 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
 
       {/* Left Sidebar - Progress & Steps */}
       <aside className={cn(
-        "h-full w-64 shrink-0 border-r border-border pr-6 overflow-y-auto transition-transform duration-300",
-        "lg:block",
-        showMobileMenu ? "fixed left-0 top-0 bottom-0 z-50 bg-background shadow-lg" : "hidden lg:block"
+        "h-full w-64 shrink-0 border-r border-border pr-6 transition-transform duration-300 flex flex-col",
+        showMobileMenu ? "fixed left-0 top-0 bottom-0 z-50 bg-background shadow-lg" : "hidden lg:flex"
       )}>
-        <div className="flex flex-col h-full space-y-6 py-4 sm:py-2 pl-4 lg:pl-6">
+        <div className="flex flex-col flex-1 space-y-6 py-4 sm:py-2 pl-1.5 lg:pl-1.5 overflow-y-auto">
           {/* Logo & Close Button */}
-          <div className="pb-5 sm:pb-4 border-b border-border flex items-center justify-between">
+          <div className="h-[68px] pb-[42px] sm:pb-[42px] border-b border-border flex items-center justify-between mb-6">
             <img
               src="https://voicestack.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvoicestack-logo.91a9d9aa.svg&w=384&q=75&dpl=dpl_6YQQQr5c5yUDQKfyirHUrb7KDZfE"
               alt="VoiceStack"
-              className="h-6 w-auto"
+              className="h-7 w-[145px]"
               loading="eager"
             />
             <Button
@@ -355,7 +405,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                   }}
                   disabled={!isAccessible}
                   className={cn(
-                    "w-full flex items-center gap-3.5 py-3.5 sm:py-2.5 rounded-lg text-left transition-colors min-h-[48px] sm:min-h-0",
+                    "w-full flex items-center justify-start gap-3.5 py-3.5 sm:py-2.5 rounded-lg text-left transition-colors min-h-[48px] sm:min-h-0",
                     isCurrent
                       ? "bg-muted text-foreground"
                       : isCompleted
@@ -400,18 +450,18 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               );
             })}
           </nav>
+        </div>
 
-          {/* Logout Button - Bottom */}
-          <div className="mt-auto pt-6 border-t border-border">
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              onClick={signOut}
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm font-medium">Sign out</span>
-            </Button>
-          </div>
+        {/* Logout Button - Bottom */}
+        <div className="pt-6 pb-6 mb-0 mt-auto flex-shrink-0">
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-2"
+            onClick={signOut}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm font-medium">Sign out</span>
+          </Button>
         </div>
       </aside>
 
@@ -470,7 +520,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
 
         {/* Navigation Buttons - Fixed at bottom */}
         {currentStep.key !== OnboardingStep.REVIEW ? (
-          <div className="flex items-center justify-between gap-2 sm:gap-3 pt-4 sm:pt-6 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 pt-4 sm:pt-4 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
             <Button
               variant="outline"
               onClick={handlePrevious}
@@ -482,17 +532,22 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               <span className="hidden sm:inline">Go to Previous Step</span>
               <span className="sm:hidden">Previous</span>
             </Button>
-            <Button onClick={handleNext} size="default" className="flex-1 sm:flex-initial min-h-[44px] text-sm sm:text-xs">
+            <Button onClick={handleNext} size="default" className="flex-1 sm:flex-initial min-h-[44px] text-sm sm:text-xs border border-[rgba(0,0,0,0.1)]">
               <span className="hidden sm:inline">Continue to Next Step</span>
               <span className="sm:hidden">Next</span>
               <ArrowRight className="h-4 w-4 ml-1 sm:ml-2" />
             </Button>
           </div>
         ) : (
-          <div className="flex items-center justify-end gap-2 sm:gap-3 pt-4 sm:pt-6 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 pt-4 sm:pt-4 pb-2 sm:pb-4 px-3 sm:px-0 border-t shrink-0 bg-background">
             <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
               <DialogTrigger asChild>
-                <Button disabled={!canSubmit || isSubmitting} size="default" className="w-full sm:w-auto min-h-[44px]">
+                <Button 
+                  disabled={!canSubmit || isSubmitting} 
+                  size="default" 
+                  className="w-full sm:w-auto min-h-[44px]"
+                  title={!canSubmit ? 'Cannot submit: Please resolve all blockers first' : undefined}
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

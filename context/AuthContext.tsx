@@ -21,9 +21,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state from storage
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    setIsLoading(false);
+    try {
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Error initializing auth:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const signIn = useCallback(async (userData: User) => {
@@ -31,6 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const authenticatedUser = await authSignIn(userData);
       setUser(authenticatedUser);
+      
+      // Set auth cookie for server-side access
+      if (typeof document !== 'undefined') {
+        // Encode the JSON to avoid issues with special characters
+        const encodedUser = encodeURIComponent(JSON.stringify(authenticatedUser));
+        document.cookie = `auth=${encodedUser}; path=/; max-age=86400; SameSite=Lax`; // 24 hours
+      }
       
       // Route based on user role (mock for now - in production, get from user data)
       // For demo: check email to determine role
@@ -56,6 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     authSignOut();
     setUser(null);
+    
+    // Clear auth cookie
+    if (typeof document !== 'undefined') {
+      document.cookie = 'auth=; path=/; max-age=0';
+    }
+    
     // Use setTimeout to avoid state update during render
     setTimeout(() => {
       router.push("/login");

@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   // Minification is handled automatically by Next.
 
   // Enable standalone output for Docker/containers.
-  output: "standalone",
+  // Only enable in production builds, not during development
+  // output: "standalone",
   
   // Security headers
   async headers() {

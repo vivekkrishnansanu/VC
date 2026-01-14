@@ -4,6 +4,7 @@
  */
 
 export * from './types';
+export * from './account-warnings.service';
 export * from './onboarding-session.service';
 export * from './copy-location.service';
 export * from './smart-skip.service';
@@ -13,3 +14,5 @@ export * from './extension.service';
 export * from './validation.service';
 export * from './automation.service';
 export * from './audit-log.service';
+export * from './progress.service';
+export * from './migration-helpers';

@@ -197,7 +197,7 @@ export class OnboardingSessionService {
   /**
    * Check if session can be submitted
    */
-  static canSubmit(locationId: string): { canSubmit: boolean; reasons: string[] } {
+  static async canSubmit(locationId: string): Promise<{ canSubmit: boolean; reasons: string[] }> {
     // NOTE: For demo this uses cache-only. API paths that call canSubmit should call getOrCreateSession first.
     const session = sessionCache.get(locationId);
     if (!session) {
@@ -227,11 +227,18 @@ export class OnboardingSessionService {
     }
 
     // Check for pending approvals
-    // This will be implemented in approval service
-    // const pendingApprovals = ApprovalService.getPendingApprovals(locationId);
-    // if (pendingApprovals.length > 0) {
-    //   reasons.push('Pending approvals required');
-    // }
+    const { ApprovalService } = await import('./approval.service');
+    const pendingApprovals = ApprovalService.getPendingApprovals(locationId);
+    if (pendingApprovals.length > 0) {
+      reasons.push(`Pending approvals required (${pendingApprovals.length} approval(s) pending)`);
+    }
+
+    // Check validation errors (NEW: includes device ownership, IVR structure, etc.)
+    const { ValidationService } = await import('./validation.service');
+    const validation = ValidationService.validateOnboardingForSubmission(locationId);
+    if (!validation.isValid) {
+      reasons.push(...validation.errors);
+    }
 
     return {
       canSubmit: reasons.length === 0,

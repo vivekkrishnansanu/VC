@@ -3,56 +3,144 @@
 import { useEffect, useState } from 'react';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { OnboardingStatus } from '@/lib/mock-data/types';
-import Link from 'next/link';
-import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { AccountCard } from '@/components/accounts/AccountCard';
+import { AccountWarningsService } from '@/lib/services/account-warnings.service';
+import { ProgressService } from '@/lib/services/progress.service';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+
+interface AccountData {
+  id: string;
+  name: string;
+  productType: any;
+  warnings: any;
+  progress: any;
+  locations: any[];
+}
 
 export default function CustomerDashboard() {
-  const [locations, setLocations] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
-  const { signOut } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { signOut, user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    // In real app, get from auth context
-    const customerId = 'user-3'; // Mock customer
-    const customerLocations = mockDataService.locations.getByCustomerId(customerId);
-    setLocations(customerLocations);
-    setLoading(false);
-  }, []);
+    // Wait for auth to finish loading before fetching accounts
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
 
-  const getStatusBadge = (status: OnboardingStatus) => {
-    const variants: Record<OnboardingStatus, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-      [OnboardingStatus.NOT_STARTED]: { variant: "outline", icon: Clock },
-      [OnboardingStatus.IN_PROGRESS]: { variant: "secondary", icon: PlayCircle },
-      [OnboardingStatus.PENDING_APPROVAL]: { variant: "secondary", icon: Clock },
-      [OnboardingStatus.APPROVED]: { variant: "default", icon: CheckCircle2 },
-      [OnboardingStatus.PROVISIONING]: { variant: "secondary", icon: Clock },
-      [OnboardingStatus.COMPLETED]: { variant: "default", icon: CheckCircle2 },
-      [OnboardingStatus.BLOCKED]: { variant: "destructive", icon: AlertCircle },
-      [OnboardingStatus.CANCELLED]: { variant: "outline", icon: AlertCircle },
+    // Fetch accounts with warnings and progress
+    const loadAccounts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // In real app, get from auth context
+        // Try to get from auth context first, fallback to mock
+        const customerId = user?.id || 'user-3'; // Mock customer
+        console.log('Loading accounts for customer:', customerId, 'user:', user);
+        
+        let customerLocations = mockDataService.locations.getByCustomerId(customerId);
+        console.log('Found locations:', customerLocations.length, customerLocations);
+        
+        // If no locations found, try getting all locations for demo
+        if (customerLocations.length === 0) {
+          console.warn('No locations found for customer, using all locations for demo');
+          customerLocations = mockDataService.locations.getAll().slice(0, 3);
+        }
+        
+        // Get unique account IDs
+        const accountIds = [...new Set(customerLocations.map(loc => loc.accountId))];
+        
+        // Build account data with warnings and progress
+        const accountsData = await Promise.all(
+          accountIds.map(async (accountId) => {
+            try {
+              const account = mockDataService.accounts.getById(accountId);
+              if (!account) return null;
+
+              const warnings = AccountWarningsService.calculateAccountWarnings(accountId);
+              const progress = ProgressService.calculateAccountProgress(accountId);
+              
+              // Get locations for this account
+              const accountLocations = customerLocations.filter(loc => loc.accountId === accountId);
+              const locations = accountLocations.map(location => {
+                try {
+                  const onboarding = mockDataService.onboarding.getByLocationId(location.id);
+                  const locationWarnings = AccountWarningsService.calculateLocationWarnings(location.id);
+                  const locationProgress = ProgressService.calculateLocationProgress(location.id);
+
+                  return {
+                    id: location.id,
+                    name: location.name,
+                    addressLine1: location.addressLine1,
+                    city: location.city,
+                    state: location.state,
+                    status: onboarding?.status || 'NOT_STARTED',
+                    progress: locationProgress,
+                    warnings: locationWarnings,
+                  };
+                } catch (err) {
+                  console.error(`Error loading location ${location.id}:`, err);
+                  return {
+                    id: location.id,
+                    name: location.name,
+                    addressLine1: location.addressLine1,
+                    city: location.city,
+                    state: location.state,
+                    status: 'NOT_STARTED',
+                    progress: { completed: 0, total: 6, percentage: 0, currentStep: null },
+                    warnings: { blockers: { pendingApprovals: 0, hasUnsupportedPhones: false }, warnings: { missingDevices: false, incompleteCallFlow: false } },
+                  };
+                }
+              });
+
+              return {
+                id: account.id,
+                name: account.name,
+                productType: account.productType,
+                warnings,
+                progress,
+                locations,
+              };
+            } catch (err) {
+              console.error(`Error loading account ${accountId}:`, err);
+              return null;
+            }
+          })
+        );
+
+        const validAccounts = accountsData.filter(Boolean) as AccountData[];
+        console.log('Loaded accounts:', validAccounts.length, validAccounts);
+        setAccounts(validAccounts);
+      } catch (error) {
+        console.error('Failed to load accounts:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load accounts';
+        setError(errorMessage);
+        console.error('Error details:', {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        // Set empty array on error to show empty state
+        setAccounts([]);
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    const config = variants[status];
-    const Icon = config.icon;
-    
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {status.replace('_', ' ')}
-      </Badge>
-    );
-  };
 
-  if (loading) {
+    loadAccounts();
+  }, [user, authLoading]);
+
+  if (authLoading || loading) {
     return (
       <div className="h-screen bg-background overflow-hidden">
         <div className="flex h-full w-full gap-6 px-4 py-4 sm:px-6 sm:py-6">
           <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto overscroll-contain">
-              <p className="text-center text-sm text-muted-foreground">Loading...</p>
+            <div className="flex-1 overflow-y-auto overscroll-contain flex items-center justify-center">
+              <LoadingSpinner size="lg" text="Loading accounts..." />
             </div>
           </div>
         </div>
@@ -60,15 +148,41 @@ export default function CustomerDashboard() {
     );
   }
 
-  if (locations.length === 0) {
+  if (accounts.length === 0 && !loading && !error) {
     return (
       <div className="h-screen bg-background overflow-hidden">
         <div className="flex h-full w-full gap-6 px-4 py-4 sm:px-6 sm:py-6">
           <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              <p className="text-center text-sm text-muted-foreground">
-                No locations assigned. Please contact your Implementation Lead.
-              </p>
+              <div className="space-y-4">
+                <div className="mb-3 sm:mb-4">
+                  <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mb-1">
+                    My accounts
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    View your accounts and track onboarding progress.
+                  </p>
+                </div>
+                <Separator className="mb-4 sm:mb-6" />
+                <div className="text-center py-12">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No accounts found.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Please contact your Implementation Lead to get access to accounts.
+                  </p>
+                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-muted-foreground p-4 bg-muted rounded-lg border border-border">
+                    <p className="font-semibold mb-2">Debug info:</p>
+                    <p>Loading: {loading ? 'true' : 'false'}</p>
+                    <p>Auth Loading: {authLoading ? 'true' : 'false'}</p>
+                    <p>User: {user ? `${user.name} (${user.id})` : 'null'}</p>
+                    <p>Accounts count: {accounts.length}</p>
+                    <p className="mt-2">Check browser console for details</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -78,7 +192,7 @@ export default function CustomerDashboard() {
 
   return (
     <div className="h-screen bg-background overflow-hidden">
-      <div className="flex h-full w-full gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-6 md:py-6">
+      <div className="flex h-full w-full gap-3 px-3 py-3 sm:gap-4 sm:px-3 sm:py-3 md:gap-6 md:px-3 md:py-3">
         {/* Left Sidebar - Navigation */}
         <aside className="hidden h-full w-64 shrink-0 lg:block border-r border-border pr-6 overflow-y-auto">
           <div className="flex flex-col h-full space-y-6 py-2">
@@ -111,67 +225,46 @@ export default function CustomerDashboard() {
 
         {/* Main Content Area */}
         <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="flex-1 overflow-y-auto overscroll-contain pl-3">
             {/* Page Header */}
             <div className="mb-3 sm:mb-4">
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mb-1">
-                My locations
+                My accounts
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Complete onboarding for your assigned locations.
+                View your accounts and track onboarding progress.
               </p>
             </div>
             <Separator className="mb-4 sm:mb-6" />
 
-            {/* Locations List */}
-            <div className="space-y-4">
-              {locations.map((location) => {
-                const onboarding = mockDataService.onboarding.getByLocationId(location.id);
-                const status = onboarding?.status || OnboardingStatus.NOT_STARTED;
-                const canContinue = status === OnboardingStatus.NOT_STARTED || status === OnboardingStatus.IN_PROGRESS;
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-sm font-medium text-destructive">
+                  Error: {error}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Please refresh the page or contact support if the issue persists.
+                </p>
+              </div>
+            )}
 
+            {/* Account Cards */}
+            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(1, 1fr)', gridTemplateRows: 'repeat(1, 1fr)' }}>
+              {accounts.map((account) => {
+                if (!account || !account.warnings || !account.progress) {
+                  console.warn('Invalid account data:', account);
+                  return null;
+                }
                 return (
-                  <div
-                    key={location.id}
-                    className="rounded-lg border border-border bg-background p-4 sm:p-5"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                      <div className="min-w-0 flex-1 space-y-2 sm:space-y-3">
-                        <div>
-                          <h3 className="text-base font-semibold text-foreground mb-1.5">{location.name}</h3>
-                          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="break-words">{location.addressLine1}, {location.city}, {location.state}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                          {getStatusBadge(status)}
-                          <span className="text-xs sm:text-sm text-muted-foreground">
-                            {status === OnboardingStatus.COMPLETED
-                              ? "Onboarding completed"
-                              : status === OnboardingStatus.PENDING_APPROVAL
-                              ? "Waiting for approval"
-                              : "Continue where you left off"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 w-full sm:w-auto">
-                        {canContinue ? (
-                          <Link href={`/customer/onboarding/${location.id}`} className="block">
-                            <Button size="default" className="w-full sm:w-auto min-h-[44px]">
-                              {status === OnboardingStatus.NOT_STARTED ? "Start Onboarding" : "Continue Onboarding"}
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Button size="default" variant="outline" disabled className="w-full sm:w-auto min-h-[44px]">
-                            View Details
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <AccountCard
+                    key={account.id}
+                    account={account}
+                    warnings={account.warnings}
+                    progress={account.progress}
+                    locations={account.locations || []}
+                    userRole="CUSTOMER"
+                  />
                 );
               })}
             </div>

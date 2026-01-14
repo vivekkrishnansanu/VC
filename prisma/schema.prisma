@@ -51,10 +51,21 @@ enum PhoneOwnership {
   LEASED
 }
 
+enum DeviceType {
+  DESKPHONE
+  SOFTPHONE
+  MOBILE
+}
+
+enum DeviceOwnership {
+  OWNED
+  NOT_OWNED
+}
+
 enum PhoneAssignmentType {
   ASSIGNED_TO_USER
   ASSIGNED_TO_EXTENSION
-  COMMON
+  COMMON  // Deprecated: Treat as ASSIGNED_TO_EXTENSION in new UX
 }
 
 enum ContactMedium {
@@ -141,6 +152,11 @@ model Account {
   totalLocations    Int      @default(0)
   accountId         String?  // For CS VoiceStack (future dropdown-based)
   
+  // NEW: Dashboard aggregation fields (computed or cached)
+  // These can be computed on-demand or cached for performance
+  warningCount      Int      @default(0) // Count of locations with warnings
+  blockerCount      Int      @default(0) // Count of locations with blockers
+  
   // Relationships
   implementationLeads AccountImplementationLead[] @relation("AccountImplementationLeads")
   locations         Location[] @relation("AccountLocations")
@@ -156,6 +172,8 @@ model Account {
   
   @@index([productType])
   @@index([createdBy])
+  @@index([warningCount])
+  @@index([blockerCount])
 }
 
 model AccountImplementationLead {
@@ -275,13 +293,19 @@ model LocationOnboarding {
   phoneSystemDetails String? // If Traditional -> text field
   phoneSystemVoipType String? // If VoIP -> dropdown + "Other"
   callForwardingSupported Boolean? // LL (skip if known for phone system)
-  usesFax         Boolean? // LL
+  usesFax         Boolean? // LL (explicit Yes/No)
   faxNumber       String? // If usesFax = true
-  wantsFaxInVoiceStack Boolean? // If usesFax = false
+  wantsFaxInVoiceStack Boolean? // If usesFax = false (conditional follow-up)
   
-  // Phone & Device Details
+  // Device Ownership & Purchase Flow (NEW)
+  deviceOwnership DeviceOwnership? // OWNED | NOT_OWNED (asked once per location)
+  hasYealinkOrPolycom Boolean? // If deviceOwnership = OWNED
+  buyPhonesThroughVoiceStack Boolean? // Purchase decision
+  deviceCatalogSelections Json? // Array of {brand, model, quantity, deviceTypes} when buyPhonesThroughVoiceStack = true
+  
+  // Phone & Device Details (Legacy - kept for backward compatibility)
   totalDevices    Int?
-  assignmentStrategy PhoneAssignmentType?
+  assignmentStrategy PhoneAssignmentType? // Deprecated: assignment now per-device
   
   // Working Hours
   workingHours    WorkingHoursSchedule[]
@@ -290,6 +314,13 @@ model LocationOnboarding {
   greetingMessage String?
   hasIVR          Boolean?
   callFlow        CallFlow?
+  
+  // IVR Global Fields (NEW - stored at onboarding level, applied to all options)
+  ivrScript       String? // Global IVR script (shown at top)
+  ivrRetryAttempts Int? // Global retry attempts
+  ivrWaitTime     Int? // Global wait time (seconds)
+  ivrInvalidSelectionScript String? // Global invalid selection script
+  ivrAfterRetriesTarget String? // Global after retry routing
   
   // Copy tracking
   copiedFromLocationId String? // Track which location was copied from
@@ -315,7 +346,7 @@ model Phone {
   id              String   @id @default(cuid())
   locationId      String
   brand           PhoneBrand
-  model           String
+  model           String  // Free text if brand = OTHER
   ownership       PhoneOwnership
   assignmentType  PhoneAssignmentType
   assignedUserId  String? // If assigned to user
@@ -323,6 +354,11 @@ model Phone {
   serialNumber    String?
   extension       String?
   isUnsupported   Boolean  @default(false)
+  
+  // NEW: Device Type & Warnings
+  deviceTypes     DeviceType[] // Multi-select: DESKPHONE, SOFTPHONE, MOBILE
+  hasWarnings     Boolean  @default(false)
+  warningReason   String? // Reason for warning state
   
   // Relationships
   location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -336,6 +372,7 @@ model Phone {
   @@index([assignedUserId])
   @@index([brand, model])
   @@index([isUnsupported])
+  @@index([hasWarnings])
 }
 
 model PhonePurchaseRequest {
@@ -407,7 +444,16 @@ model CallFlow {
   directRingType  String? // "users" or "extensions"
   directRingTargets CallFlowTarget[]
   
-  // IVR configuration
+  // IVR Global Fields (NEW - moved from IVROption level)
+  // Note: These are also stored at LocationOnboarding level for easier access
+  // This model stores them for backward compatibility and normalization
+  ivrScript       String? // Global IVR script
+  ivrRetryAttempts Int? // Global retry attempts
+  ivrWaitTime     Int? // Global wait time (seconds)
+  ivrInvalidSelectionScript String? // Global invalid selection script
+  ivrAfterRetriesTarget String? // Global after retry routing
+  
+  // IVR Options (simplified - only routing targets)
   ivrOptions      IVROption[]
   
   // Voicemail
@@ -421,14 +467,13 @@ model CallFlow {
 model IVROption {
   id              String   @id @default(cuid())
   callFlowId      String
-  optionNumber    String   // e.g., "1", "2", "3"
-  script          String?
+  optionNumber    String   // e.g., "1", "2", "3" (DTMF digit)
+  label           String?  // Optional label/description for the option
   ringType        String   // "users" or "extensions"
-  retryAttempts   Int      @default(0)
-  waitTime        Int?     // seconds
-  invalidSelectionScript String?
-  afterRetriesTarget String? // "voicemail" or specific user/extension
-  voicemailScript String?
+  
+  // NEW: Simplified - only routing targets (global IVR fields moved to CallFlow)
+  // Global fields (retryAttempts, waitTime, etc.) are now at CallFlow level
+  // and applied to all options
   
   callFlow        CallFlow @relation(fields: [callFlowId], references: [id], onDelete: Cascade)
   targets         IVROptionTarget[]

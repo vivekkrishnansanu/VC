@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,10 +33,28 @@ const accountSchema = z.object({
 
 type AccountFormData = z.infer<typeof accountSchema>;
 
+interface LocationFormData {
+  name: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+}
+
+interface CreditInfoFormData {
+  creditScore?: number;
+  creditLimit?: number;
+  billingAccountId?: string;
+  notes?: string;
+}
+
 export default function CreateAccountPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [additionalContacts, setAdditionalContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+  const [locations, setLocations] = useState<LocationFormData[]>([]);
+  const [creditInfo, setCreditInfo] = useState<CreditInfoFormData>({});
 
   const {
     register,
@@ -54,10 +72,36 @@ export default function CreateAccountPage() {
   });
 
   const productType = watch('productType');
+  const totalLocations = watch('totalLocations') || 1;
+
+  // Initialize locations when totalLocations changes
+  useEffect(() => {
+    if (totalLocations > 0 && locations.length !== totalLocations) {
+      setLocations(Array(totalLocations).fill(null).map(() => ({
+        name: '',
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        zipcode: '',
+      })));
+    }
+  }, [totalLocations]);
+
+  const updateLocation = (index: number, field: keyof LocationFormData, value: string) => {
+    const updated = [...locations];
+    updated[index] = { ...updated[index], [field]: value };
+    setLocations(updated);
+  };
 
   const onSubmit = async (data: AccountFormData) => {
     // In real implementation, call API to create account
-    console.log('Creating account:', { ...data, additionalContacts });
+    console.log('Creating account:', { 
+      ...data, 
+      additionalContacts,
+      locations,
+      creditInfo,
+    });
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -95,7 +139,7 @@ export default function CreateAccountPage() {
           <div className="mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Create New Account</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Step {step} of 2: {step === 1 ? 'Account Details' : 'Contacts'}
+              Step {step} of 4: {step === 1 ? 'Account Details' : step === 2 ? 'Contacts' : step === 3 ? 'Locations' : 'Credit Info'}
             </p>
           </div>
 
@@ -170,7 +214,21 @@ export default function CreateAccountPage() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-6 border-t">
-                  <Button type="button" size="sm" onClick={() => setStep(2)}>
+                  <Button type="button" size="sm" onClick={() => {
+                    // Initialize locations when moving to next step
+                    const count = watch('totalLocations') || 1;
+                    if (locations.length !== count) {
+                      setLocations(Array(count).fill(null).map(() => ({
+                        name: '',
+                        addressLine1: '',
+                        addressLine2: '',
+                        city: '',
+                        state: '',
+                        zipcode: '',
+                      })));
+                    }
+                    setStep(2);
+                  }}>
                     Continue to Contacts
                   </Button>
                 </div>
@@ -287,6 +345,156 @@ export default function CreateAccountPage() {
                 <div className="flex flex-col-reverse sm:flex-row justify-between gap-2 pt-6 border-t">
                   <Button type="button" variant="outline" size="sm" onClick={() => setStep(1)} className="w-full sm:w-auto">
                     Back to Account Details
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => setStep(3)} className="w-full sm:w-auto">
+                    Continue to Locations
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">Locations</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add location details for all {totalLocations} location(s)
+                    </p>
+                  </div>
+                  <div className="space-y-6">
+                    {locations.map((location, index) => (
+                      <div key={index} className="p-4 border rounded-lg space-y-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className="font-medium">Location {index + 1}</h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label>Location Name *</Label>
+                            <Input
+                              value={location.name}
+                              onChange={(e) => updateLocation(index, 'name', e.target.value)}
+                              placeholder="Main Office"
+                            />
+                          </div>
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label>Address Line 1 *</Label>
+                            <Input
+                              value={location.addressLine1}
+                              onChange={(e) => updateLocation(index, 'addressLine1', e.target.value)}
+                              placeholder="123 Main Street"
+                            />
+                          </div>
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label>Address Line 2</Label>
+                            <Input
+                              value={location.addressLine2 || ''}
+                              onChange={(e) => updateLocation(index, 'addressLine2', e.target.value)}
+                              placeholder="Suite 100"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>City *</Label>
+                            <Input
+                              value={location.city}
+                              onChange={(e) => updateLocation(index, 'city', e.target.value)}
+                              placeholder="New York"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>State *</Label>
+                            <Input
+                              value={location.state}
+                              onChange={(e) => updateLocation(index, 'state', e.target.value)}
+                              placeholder="NY"
+                              maxLength={2}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Zipcode *</Label>
+                            <Input
+                              value={location.zipcode}
+                              onChange={(e) => updateLocation(index, 'zipcode', e.target.value)}
+                              placeholder="10001"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-2 pt-6 border-t">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setStep(2)} className="w-full sm:w-auto">
+                    Back to Contacts
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => setStep(4)} className="w-full sm:w-auto">
+                    Continue to Credit Info
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">Credit Information</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Enter credit information for this account (optional)
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="creditScore">Credit Score</Label>
+                        <Input
+                          id="creditScore"
+                          type="number"
+                          min="300"
+                          max="850"
+                          value={creditInfo.creditScore || ''}
+                          onChange={(e) => setCreditInfo({ ...creditInfo, creditScore: e.target.value ? Number(e.target.value) : undefined })}
+                          placeholder="750"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="creditLimit">Credit Limit ($)</Label>
+                        <Input
+                          id="creditLimit"
+                          type="number"
+                          min="0"
+                          value={creditInfo.creditLimit || ''}
+                          onChange={(e) => setCreditInfo({ ...creditInfo, creditLimit: e.target.value ? Number(e.target.value) : undefined })}
+                          placeholder="50000"
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="billingAccountId">Billing Account ID</Label>
+                        <Input
+                          id="billingAccountId"
+                          value={creditInfo.billingAccountId || ''}
+                          onChange={(e) => setCreditInfo({ ...creditInfo, billingAccountId: e.target.value })}
+                          placeholder="BILL-ACME-001"
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="creditNotes">Notes</Label>
+                        <Textarea
+                          id="creditNotes"
+                          value={creditInfo.notes || ''}
+                          onChange={(e) => setCreditInfo({ ...creditInfo, notes: e.target.value })}
+                          placeholder="Additional credit information..."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-2 pt-6 border-t">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setStep(3)} className="w-full sm:w-auto">
+                    Back to Locations
                   </Button>
                   <Button type="submit" size="sm" className="w-full sm:w-auto">Create New Account</Button>
                 </div>

@@ -43,17 +43,27 @@ export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSub
 
   useEffect(() => {
     // Validate onboarding before showing review
-    fetch('/api/validation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        locationId,
-        type: 'onboarding',
-      }),
-    })
-      .then(res => res.json())
-      .then(data => setValidation(data))
-      .catch(() => setValidation({ isValid: false, errors: [], warnings: [] }));
+    Promise.all([
+      fetch('/api/validation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId,
+          type: 'onboarding',
+        }),
+      }).then(res => res.json()),
+      fetch(`/api/approvals?locationId=${locationId}`).then(res => res.json()).catch(() => ({ pendingApprovals: [] })),
+    ]).then(([validationData, approvalsData]) => {
+      setValidation(validationData);
+      // Store pending approvals info for display
+      if (approvalsData.pendingApprovals?.length > 0) {
+        setValidation((prev: any) => ({
+          ...prev,
+          hasPendingApprovals: true,
+          pendingApprovalsCount: approvalsData.pendingApprovals.length,
+        }));
+      }
+    }).catch(() => setValidation({ isValid: false, errors: [], warnings: [] }));
   }, [locationId]);
 
   const handleSubmit = async () => {
@@ -90,7 +100,24 @@ export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSub
     }
   };
 
-  const submitAllowed = canSubmit !== undefined ? canSubmit : (validation?.isValid && unsupportedPhones.length === 0);
+  // Block submission if:
+  // 1. Validation errors exist
+  // 2. Unsupported devices exist
+  // 3. Pending approvals exist
+  const hasPendingApprovals = validation?.hasPendingApprovals === true;
+  const pendingApprovalsCount = validation?.pendingApprovalsCount || 0;
+  
+  const submitAllowed = canSubmit !== undefined 
+    ? canSubmit && !hasPendingApprovals
+    : (validation?.isValid && unsupportedPhones.length === 0 && !hasPendingApprovals);
+  
+  const blockReason = hasPendingApprovals 
+    ? `Submission blocked: ${pendingApprovalsCount} pending approval(s) must be resolved`
+    : !validation?.isValid
+      ? 'Please fix validation errors'
+      : unsupportedPhones.length > 0
+        ? 'Unsupported devices must be resolved'
+        : null;
 
   return (
     <div className="space-y-8">
@@ -140,6 +167,19 @@ export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSub
             <div className="space-y-1">
               <p className="font-medium">Unsupported Devices Detected:</p>
               <p>You have {unsupportedPhones.length} unsupported device(s). Please resolve approval requests before submitting.</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {validation?.hasPendingApprovals && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p className="font-medium">Submission Blocked: Pending Approvals</p>
+              <p>You have {validation.pendingApprovalsCount} pending approval(s) that must be resolved before you can submit this onboarding.</p>
+              <p className="text-sm mt-2">Please wait for approval or contact your implementation lead for assistance.</p>
             </div>
           </AlertDescription>
         </Alert>
@@ -268,6 +308,21 @@ export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSub
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Submission Block Message */}
+      {!submitAllowed && blockReason && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium">{blockReason}</p>
+            {hasPendingApprovals && (
+              <p className="text-sm mt-1">
+                You cannot submit until all pending approvals are resolved. Please contact your implementation lead if you need assistance.
+              </p>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 

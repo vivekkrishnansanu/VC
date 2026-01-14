@@ -168,7 +168,7 @@ export interface Phone {
   id: string;
   locationId: string;
   brand: PhoneBrand;
-  model: string;
+  model: string; // Free text if brand = OTHER
   ownership: PhoneOwnership;
   assignmentType: PhoneAssignmentType;
   assignedUserId?: string;
@@ -179,6 +179,12 @@ export interface Phone {
   serialNumber?: string;
   extension?: string;
   isUnsupported: boolean;
+  
+  // NEW: Device Type & Warnings
+  deviceTypes?: DeviceType[]; // Multi-select: DESKPHONE, SOFTPHONE, MOBILE
+  hasWarnings?: boolean;
+  warningReason?: string; // Reason for warning state
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -194,10 +200,25 @@ export enum PhoneOwnership {
   LEASED = 'LEASED',
 }
 
+export enum DeviceOwnership {
+  OWNED = 'OWNED',
+  NOT_OWNED = 'NOT_OWNED',
+}
+
 export enum PhoneAssignmentType {
   ASSIGNED_TO_USER = 'ASSIGNED_TO_USER',
   ASSIGNED_TO_EXTENSION = 'ASSIGNED_TO_EXTENSION',
+  /**
+   * Deprecated in the new UX.
+   * Treat COMMON as ASSIGNED_TO_EXTENSION.
+   */
   COMMON = 'COMMON',
+}
+
+export enum DeviceType {
+  DESKPHONE = 'DESKPHONE',
+  SOFTPHONE = 'SOFTPHONE',
+  MOBILE = 'MOBILE',
 }
 
 // ============================================================================
@@ -216,15 +237,12 @@ export interface CallFlow {
 export interface IVROption {
   id: string;
   callFlowId: string;
-  optionNumber: string;
-  script: string;
+  optionNumber: string; // DTMF digit (e.g., "1", "2", "3")
+  label?: string; // Optional label/description
   ringType: 'users' | 'extensions';
   targets: IVROptionTarget[];
-  retryAttempts: number;
-  waitTime: number;
-  invalidSelectionScript: string;
-  afterRetriesTarget: string;
-  voicemailScript: string;
+  // NOTE: Global IVR fields (retryAttempts, waitTime, invalidSelectionScript, afterRetriesTarget)
+  // are now stored at LocationOnboarding level and applied to all options
 }
 
 export interface IVROptionTarget {

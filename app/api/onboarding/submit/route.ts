@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if can submit
-    const canSubmit = OnboardingSessionService.canSubmit(locationId);
+    const canSubmit = await OnboardingSessionService.canSubmit(locationId);
     if (!canSubmit.canSubmit) {
       return NextResponse.json(
         { error: 'Cannot submit onboarding', reasons: canSubmit.reasons },

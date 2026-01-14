@@ -10,31 +10,35 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PhoneBrand, PhoneOwnership, PhoneAssignmentType } from '@/lib/mock-data/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { PhoneBrand, DeviceOwnership, PhoneAssignmentType, DeviceType } from '@/lib/mock-data/types';
 import { mockDataService } from '@/lib/mock-data/service';
-import { Plus, X, AlertTriangle, Info, HelpCircle } from 'lucide-react';
+import { Plus, Edit2, X, AlertTriangle, Info, Lock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 
-const deviceSchema = z.object({
-  totalDevices: z.number().min(1, 'At least one device is required'),
-  assignmentStrategy: z.nativeEnum(PhoneAssignmentType).optional(),
+const deviceOwnershipSchema = z.object({
+  deviceOwnership: z.nativeEnum(DeviceOwnership, {
+    required_error: 'Please select an option',
+  }),
+  hasYealinkOrPolycom: z.boolean().optional(),
+  buyPhonesThroughVoiceStack: z.boolean().optional(),
 });
 
-type DeviceFormData = z.infer<typeof deviceSchema>;
+type DeviceOwnershipFormData = z.infer<typeof deviceOwnershipSchema>;
 
 interface Device {
   id: string;
   brand: PhoneBrand;
   model: string;
-  ownership: PhoneOwnership;
+  deviceTypes?: DeviceType[];
   assignmentType: PhoneAssignmentType;
   assignedUserId?: string;
   userFirstName?: string;
@@ -44,6 +48,8 @@ interface Device {
   serialNumber?: string;
   extension?: string;
   isUnsupported: boolean;
+  hasWarnings?: boolean;
+  warningReason?: string;
 }
 
 interface DevicesStepProps {
@@ -54,15 +60,13 @@ interface DevicesStepProps {
 
 export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepProps) {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [supportedModels, setSupportedModels] = useState<Record<PhoneBrand, string[]>>({} as any);
+  const [deviceOwnership, setDeviceOwnership] = useState<DeviceOwnership | undefined>(undefined);
+  const [hasYealinkOrPolycom, setHasYealinkOrPolycom] = useState<boolean | undefined>(undefined);
+  const [buyPhonesThroughVoiceStack, setBuyPhonesThroughVoiceStack] = useState<boolean | undefined>(undefined);
+  const [deviceCatalogSelections, setDeviceCatalogSelections] = useState<any[]>([]);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [showAddDevice, setShowAddDevice] = useState(false);
-  const [newDevice, setNewDevice] = useState<Partial<Device>>({
-    brand: PhoneBrand.YEALINK,
-    ownership: PhoneOwnership.OWNED,
-    assignmentType: PhoneAssignmentType.ASSIGNED_TO_USER,
-    isUnsupported: false,
-  });
-  const [deviceValidation, setDeviceValidation] = useState<{ isSupported: boolean; message?: string } | null>(null);
+  const [supportedModels, setSupportedModels] = useState<Record<PhoneBrand, string[]>>({} as any);
 
   const {
     register,
@@ -70,66 +74,82 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
     formState: { errors },
     setValue,
     watch,
-  } = useForm<DeviceFormData>({
-    resolver: zodResolver(deviceSchema),
+  } = useForm<DeviceOwnershipFormData>({
+    resolver: zodResolver(deviceOwnershipSchema),
     defaultValues: {
-      totalDevices: 1,
-      assignmentStrategy: undefined,
+      deviceOwnership: undefined,
+      hasYealinkOrPolycom: undefined,
+      buyPhonesThroughVoiceStack: undefined,
     },
   });
 
+  const onboarding = mockDataService.onboarding.getByLocationId(locationId);
+
   useEffect(() => {
-    // Load existing devices and onboarding data
-    const existingPhones = mockDataService.phones.getByLocationId(locationId);
-    const onboarding = mockDataService.onboarding.getByLocationId(locationId);
-
-    // Set form defaults
-    if (onboarding?.totalDevices) {
-      setValue('totalDevices', onboarding.totalDevices);
-    } else if (existingPhones.length > 0) {
-      setValue('totalDevices', existingPhones.length);
-    }
-
-    if (onboarding?.assignmentStrategy) {
-      setValue('assignmentStrategy', onboarding.assignmentStrategy);
+    // Load existing onboarding data
+    if (onboarding) {
+      setDeviceOwnership(onboarding.deviceOwnership);
+      setHasYealinkOrPolycom(onboarding.hasYealinkOrPolycom);
+      setBuyPhonesThroughVoiceStack(onboarding.buyPhonesThroughVoiceStack);
+      setDeviceCatalogSelections(onboarding.deviceCatalogSelections || []);
+      if (onboarding.deviceOwnership) {
+        setValue('deviceOwnership', onboarding.deviceOwnership);
+      }
+      if (onboarding.hasYealinkOrPolycom !== undefined) {
+        setValue('hasYealinkOrPolycom', onboarding.hasYealinkOrPolycom);
+      }
+      if (onboarding.buyPhonesThroughVoiceStack !== undefined) {
+        setValue('buyPhonesThroughVoiceStack', onboarding.buyPhonesThroughVoiceStack);
+      }
     }
 
     // Load existing devices
+    const existingPhones = mockDataService.phones.getByLocationId(locationId);
     if (existingPhones.length > 0) {
       setDevices(existingPhones.map(phone => ({
         id: phone.id,
         brand: phone.brand,
         model: phone.model,
-        ownership: phone.ownership,
+        deviceTypes: phone.deviceTypes || [],
         assignmentType: phone.assignmentType,
         assignedUserId: phone.assignedUserId,
         macAddress: phone.macAddress || '',
         serialNumber: phone.serialNumber || '',
         extension: phone.extension || '',
         isUnsupported: phone.isUnsupported,
+        hasWarnings: phone.hasWarnings,
+        warningReason: phone.warningReason,
       })));
     }
 
     // Load supported models
     Object.values(PhoneBrand).forEach(brand => {
-      fetch(`/api/devices/validate?brand=${brand}`)
-        .then(res => res.json())
-        .then(data => {
-          setSupportedModels(prev => ({
-            ...prev,
-            [brand]: data.models?.map((m: any) => m.model) || [],
-          }));
-        })
-        .catch(() => {
-          // Silently fail - supported models will be empty
-        });
+      if (brand === PhoneBrand.YEALINK || brand === PhoneBrand.POLYCOM) {
+        fetch(`/api/devices/validate?brand=${brand}`)
+          .then(res => res.json())
+          .then(data => {
+            setSupportedModels(prev => ({
+              ...prev,
+              [brand]: data.models?.map((m: any) => m.model) || [],
+            }));
+          })
+          .catch(() => {});
+      }
     });
   }, [locationId, setValue]);
 
-  const assignmentStrategy = watch('assignmentStrategy');
-  const shouldSkipUserDetails = skipRules.some(rule => 
-    rule.field === 'userDetails' && rule.shouldSkip
-  );
+  // Determine if device section should be shown
+  const showDeviceSection = 
+    deviceOwnership === DeviceOwnership.OWNED && hasYealinkOrPolycom === true;
+
+  // Determine if manual device entry is allowed
+  const allowManualEntry = 
+    (deviceOwnership === DeviceOwnership.OWNED && hasYealinkOrPolycom === true) ||
+    (deviceOwnership === DeviceOwnership.NOT_OWNED && buyPhonesThroughVoiceStack === false) ||
+    (deviceOwnership === DeviceOwnership.OWNED && hasYealinkOrPolycom === false && buyPhonesThroughVoiceStack === false);
+
+  // Determine if devices are VoiceStack-managed (disabled)
+  const isVoiceStackManaged = buyPhonesThroughVoiceStack === true;
 
   const validateDevice = async (brand: PhoneBrand, model: string) => {
     try {
@@ -145,161 +165,264 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
     }
   };
 
-  const handleAddDevice = async () => {
-    if (!newDevice.brand || !newDevice.model || newDevice.model === 'Other') return;
+  const handleSaveDeviceOwnership = async (data: DeviceOwnershipFormData) => {
+    await fetch('/api/onboarding/data', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locationId,
+        patch: {
+          deviceOwnership: data.deviceOwnership,
+          hasYealinkOrPolycom: data.hasYealinkOrPolycom,
+          buyPhonesThroughVoiceStack: data.buyPhonesThroughVoiceStack,
+        },
+      }),
+    });
 
-    // Use existing validation if available, otherwise validate
-    const validation =
-      deviceValidation ?? (await validateDevice(newDevice.brand, newDevice.model));
+    // If buying through VoiceStack, trigger catalog approval
+    if (data.buyPhonesThroughVoiceStack === true) {
+      // This would trigger approval workflow
+      // For now, just save the catalog selections
+    }
+  };
+
+  const handleAddDevice = async (deviceData: Partial<Device>) => {
+    if (!deviceData.brand || !deviceData.model) return;
+
+    const validation = await validateDevice(deviceData.brand, deviceData.model);
     const isSupported = Boolean(validation?.isSupported);
-    
+
     const device: Device = {
-      id: `device-${Date.now()}`,
-      brand: newDevice.brand,
-      model: newDevice.model,
-      ownership: newDevice.ownership || PhoneOwnership.OWNED,
-      assignmentType: newDevice.assignmentType || PhoneAssignmentType.ASSIGNED_TO_USER,
-      userFirstName: newDevice.userFirstName,
-      userLastName: newDevice.userLastName,
-      userEmail: newDevice.userEmail,
-      macAddress: newDevice.macAddress,
-      serialNumber: newDevice.serialNumber,
-      extension: newDevice.extension,
+      id: editingDevice?.id || `device-${Date.now()}`,
+      brand: deviceData.brand,
+      model: deviceData.model,
+      deviceTypes: deviceData.deviceTypes || [],
+      assignmentType: deviceData.assignmentType || PhoneAssignmentType.ASSIGNED_TO_USER,
+      assignedUserId: deviceData.assignedUserId,
+      macAddress: deviceData.macAddress || '',
+      serialNumber: deviceData.serialNumber || '',
+      extension: deviceData.extension || '',
       isUnsupported: !isSupported,
+      hasWarnings: false,
+      warningReason: undefined,
     };
 
-    setDevices([...devices, device]);
-    setValue('totalDevices', devices.length + 1);
-    
-    // Reset form
-    setNewDevice({
-      brand: PhoneBrand.YEALINK,
-      ownership: PhoneOwnership.OWNED,
-      assignmentType: PhoneAssignmentType.ASSIGNED_TO_USER,
-      isUnsupported: false,
-    });
-    setDeviceValidation(null);
+    // Check for warnings
+    const warnings: string[] = [];
+    if (!device.deviceTypes || device.deviceTypes.length === 0) {
+      warnings.push('Device type(s) not selected');
+    }
+    if (device.assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER && !device.assignedUserId) {
+      warnings.push('User assignment missing');
+    }
+    if (device.assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION && !device.extension) {
+      warnings.push('Extension assignment missing');
+    }
+    if (warnings.length > 0) {
+      device.hasWarnings = true;
+      device.warningReason = warnings.join('; ');
+    }
+
+    if (editingDevice) {
+      setDevices(devices.map(d => d.id === editingDevice.id ? device : d));
+    } else {
+      setDevices([...devices, device]);
+    }
+
+    setEditingDevice(null);
     setShowAddDevice(false);
   };
 
   const handleRemoveDevice = (id: string) => {
     setDevices(devices.filter(d => d.id !== id));
-    setValue('totalDevices', devices.length - 1);
   };
 
-  const onSubmit = async (data: DeviceFormData) => {
-    console.log('Saving devices:', { ...data, devices });
+  const onSubmit = async (data: DeviceOwnershipFormData) => {
+    await handleSaveDeviceOwnership(data);
     onComplete();
   };
 
-  const unsupportedDevices = devices.filter(d => d.isUnsupported);
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 overflow-visible">
-      {unsupportedDevices.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            {unsupportedDevices.length} unsupported device(s) detected. These require approval before submission.
+      {/* Device Ownership Section */}
+      <Card className="bg-gradient-to-br from-card to-card/50 border-border/60">
+        <CardContent className="p-6 space-y-5">
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-foreground">Device Ownership</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Do you own the devices for this location?
+            </p>
+          </div>
+        <div className="space-y-4">
+          <RadioGroup
+            value={deviceOwnership || ''}
+            onValueChange={(value) => {
+              const ownership = value as DeviceOwnership;
+              setDeviceOwnership(ownership);
+              setValue('deviceOwnership', ownership, { shouldValidate: true });
+              // Reset dependent fields
+              if (ownership === DeviceOwnership.NOT_OWNED) {
+                setHasYealinkOrPolycom(undefined);
+                setValue('hasYealinkOrPolycom', undefined);
+              }
+            }}
+            className="grid gap-3 pt-1"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem id="ownership-owned" value={DeviceOwnership.OWNED} />
+              <Label htmlFor="ownership-owned" className="font-normal text-sm">
+                Yes, I own the devices
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem id="ownership-not-owned" value={DeviceOwnership.NOT_OWNED} />
+              <Label htmlFor="ownership-not-owned" className="font-normal text-sm">
+                No, I do not own the devices
+              </Label>
+            </div>
+          </RadioGroup>
+          {errors.deviceOwnership && (
+            <p className="text-xs text-destructive mt-1 font-medium">{errors.deviceOwnership.message}</p>
+          )}
+        </div>
+        </CardContent>
+      </Card>
+
+      {/* Yealink/Polycom Question (if owned) */}
+      {deviceOwnership === DeviceOwnership.OWNED && (
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border/60">
+          <CardContent className="p-6 space-y-5">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-foreground">Device Brand</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Do you have Yealink or Polycom phones?
+              </p>
+            </div>
+          <div className="space-y-4">
+            <RadioGroup
+              value={hasYealinkOrPolycom === true ? 'yes' : hasYealinkOrPolycom === false ? 'no' : ''}
+              onValueChange={(value) => {
+                const has = value === 'yes';
+                setHasYealinkOrPolycom(has);
+                setValue('hasYealinkOrPolycom', has, { shouldValidate: true });
+                if (!has) {
+                  // Force purchase decision
+                  setBuyPhonesThroughVoiceStack(undefined);
+                  setValue('buyPhonesThroughVoiceStack', undefined);
+                }
+              }}
+              className="grid gap-3 pt-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem id="has-yealink-yes" value="yes" />
+                <Label htmlFor="has-yealink-yes" className="font-normal text-sm">
+                  Yes
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem id="has-yealink-no" value="no" />
+                <Label htmlFor="has-yealink-no" className="font-normal text-sm">
+                  No
+                </Label>
+              </div>
+            </RadioGroup>
+            {errors.hasYealinkOrPolycom && (
+              <p className="text-xs text-destructive mt-1 font-medium">{errors.hasYealinkOrPolycom.message}</p>
+            )}
+          </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Purchase Decision (if not owned OR no Yealink/Polycom) */}
+      {(deviceOwnership === DeviceOwnership.NOT_OWNED || 
+        (deviceOwnership === DeviceOwnership.OWNED && hasYealinkOrPolycom === false)) && (
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border/60">
+          <CardContent className="p-6 space-y-5">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-foreground">Purchase Decision</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Do you want to buy phones through VoiceStack?
+              </p>
+            </div>
+          <div className="space-y-4">
+            <RadioGroup
+              value={buyPhonesThroughVoiceStack === true ? 'yes' : buyPhonesThroughVoiceStack === false ? 'no' : ''}
+              onValueChange={(value) => {
+                const buy = value === 'yes';
+                setBuyPhonesThroughVoiceStack(buy);
+                setValue('buyPhonesThroughVoiceStack', buy, { shouldValidate: true });
+                if (buy) {
+                  // Clear manual devices when switching to catalog
+                  setDevices([]);
+                }
+              }}
+              className="grid gap-3 pt-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem id="buy-yes" value="yes" />
+                <Label htmlFor="buy-yes" className="font-normal text-sm">
+                  Yes
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem id="buy-no" value="no" />
+                <Label htmlFor="buy-no" className="font-normal text-sm">
+                  No
+                </Label>
+              </div>
+            </RadioGroup>
+            {errors.buyPhonesThroughVoiceStack && (
+              <p className="text-xs text-destructive mt-1 font-medium">{errors.buyPhonesThroughVoiceStack.message}</p>
+            )}
+
+            {buyPhonesThroughVoiceStack === true && (
+              <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  VoiceStack team will add device details. You cannot edit devices when purchasing through VoiceStack.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Warning if devices not owned */}
+      {deviceOwnership === DeviceOwnership.NOT_OWNED && (
+        <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-sm font-medium text-amber-900 dark:text-amber-100">
+            Devices will be provided or purchased. You will not be able to add device details manually.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Form Sections - Untitled UI Style */}
-      <div className="space-y-8">
-        {/* Device Overview Section */}
-        <div className="space-y-5">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-foreground">Device Overview</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Configure the total number of devices and assignment strategy
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="totalDevices" className="text-sm font-medium">
-                Total Number of Devices <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="totalDevices"
-                type="number"
-                min="1"
-                {...register('totalDevices', { valueAsNumber: true })}
-              />
-              {errors.totalDevices && (
-                <p className="text-xs text-destructive mt-1">{errors.totalDevices.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="assignmentStrategy" className="text-sm font-medium">
-                  Assignment Strategy
-                </Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-5 w-5">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Assignment Strategy</DialogTitle>
-                      <DialogDescription>
-                        <div className="space-y-2 mt-4">
-                          <div>
-                            <strong>Assigned to User:</strong> Phone is tied to a specific user. Benefits include personal voicemail, call history, and user-specific settings.
-                          </div>
-                          <div>
-                            <strong>Assigned to Extension:</strong> Phone is tied to an extension number. Limitations include shared voicemail and less personalization.
-                          </div>
-                          <div>
-                            <strong>Common Phone:</strong> Shared phone not assigned to a specific user or extension.
-                          </div>
-                        </div>
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <div className="relative z-0">
-                <Select
-                value={assignmentStrategy || ''}
-                onValueChange={(value) => setValue('assignmentStrategy', value as PhoneAssignmentType)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select assignment strategy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PhoneAssignmentType.ASSIGNED_TO_USER}>
-                    Assigned to User (Recommended)
-                  </SelectItem>
-                  <SelectItem value={PhoneAssignmentType.ASSIGNED_TO_EXTENSION}>
-                    Assigned to Extension
-                  </SelectItem>
-                  <SelectItem value={PhoneAssignmentType.COMMON}>
-                    Common Phone
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Devices List Section */}
-        <div className="space-y-5">
+      {/* Device Section (only if manual entry allowed) */}
+      {allowManualEntry && (
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">Devices</h3>
+              <h3 className="text-lg font-bold text-foreground">Devices</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {devices.length} device{devices.length !== 1 ? 's' : ''} added
               </p>
             </div>
-            <Button type="button" size="sm" onClick={() => setShowAddDevice(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Device
-            </Button>
+            {!isVoiceStackManaged && (
+              <Button 
+                type="button" 
+                size="default"
+                onClick={() => {
+                  setEditingDevice(null);
+                  setShowAddDevice(true);
+                }}
+                className="shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Device
+              </Button>
+            )}
           </div>
 
           {devices.length === 0 ? (
@@ -310,317 +433,435 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
             </div>
           ) : (
             <div className="space-y-3">
-              {devices.map((device, index) => (
-                <div
+              {devices.map((device) => (
+                <DeviceCard
                   key={device.id}
-                  className={`p-3 sm:p-4 border rounded-lg space-y-3 ${device.isUnsupported ? 'border-destructive/50 bg-destructive/5' : ''}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        Device {index + 1}
-                      </span>
-                      {device.isUnsupported && (
-                        <Badge variant="destructive" className="text-xs">
-                          Unsupported
-                        </Badge>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveDevice(device.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Brand</Label>
-                      <p className="text-sm font-medium mt-1">{device.brand}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Model</Label>
-                      <p className="text-sm font-medium mt-1">{device.model}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ownership</Label>
-                      <p className="text-sm font-medium mt-1">{device.ownership}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Assignment</Label>
-                      <p className="text-sm font-medium mt-1">{device.assignmentType.replace('_', ' ')}</p>
-                    </div>
-                    {device.macAddress && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">MAC Address</Label>
-                        <p className="text-sm font-medium mt-1">{device.macAddress}</p>
-                      </div>
-                    )}
-                    {device.extension && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Extension</Label>
-                        <p className="text-sm font-medium mt-1">{device.extension}</p>
-                      </div>
-                    )}
-                  </div>
-                  {device.isUnsupported && (
-                    <Alert variant="destructive" className="mt-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        This device model is not supported. You can either purchase a supported device through us or choose a different model.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
+                  device={device}
+                  onEdit={() => {
+                    setEditingDevice(device);
+                    setShowAddDevice(true);
+                  }}
+                  onRemove={() => handleRemoveDevice(device.id)}
+                  disabled={isVoiceStackManaged}
+                />
               ))}
             </div>
           )}
         </div>
+      )}
 
-        {/* Add Device Dialog */}
-        <Dialog open={showAddDevice} onOpenChange={(open) => {
+      {/* Add/Edit Device Dialog */}
+      <DeviceDialog
+        open={showAddDevice}
+        onOpenChange={(open) => {
           setShowAddDevice(open);
           if (!open) {
-            // Reset form when closing
-            setNewDevice({
-              brand: PhoneBrand.YEALINK,
-              ownership: PhoneOwnership.OWNED,
-              assignmentType: PhoneAssignmentType.ASSIGNED_TO_USER,
-              isUnsupported: false,
-            });
-            setDeviceValidation(null);
+            setEditingDevice(null);
           }
-        }}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Device</DialogTitle>
-              <DialogDescription>
-                Fill in the device information below
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 overflow-visible">
-              {/* Basic Device Information */}
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Device Information</h4>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Brand *</Label>
-                  <div className="relative z-0">
-                    <Select
-                    value={newDevice.brand || ''}
-                    onValueChange={(value) => {
-                      setNewDevice({ ...newDevice, brand: value as PhoneBrand, model: '' });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(PhoneBrand).map(brand => (
-                        <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Model *</Label>
-                  <div className="relative z-0">
-                    <Select
-                    value={newDevice.model || ''}
-                    onValueChange={async (value) => {
-                      setNewDevice({ ...newDevice, model: value });
-                      // Validate device in real-time
-                      if (newDevice.brand && value && value !== 'Other') {
-                        const validation = await validateDevice(newDevice.brand, value);
-                        setDeviceValidation(validation);
-                      } else {
-                        setDeviceValidation(null);
-                      }
-                    }}
-                    disabled={!newDevice.brand}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {newDevice.brand && supportedModels[newDevice.brand]?.map(model => (
-                        <SelectItem key={model} value={model}>{model}</SelectItem>
-                      ))}
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {deviceValidation && !deviceValidation.isSupported && (
-                    <Alert variant="destructive" className="mt-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        This device model is not supported. You can either purchase a supported device through us or choose a different model.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Ownership *</Label>
-                  <div className="relative z-0">
-                    <Select
-                    value={newDevice.ownership || ''}
-                    onValueChange={(value) => setNewDevice({ ...newDevice, ownership: value as PhoneOwnership })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PhoneOwnership.OWNED}>Owned</SelectItem>
-                      <SelectItem value={PhoneOwnership.LEASED}>Leased</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Assignment Type *</Label>
-                  <div className="relative z-0">
-                    <Select
-                    value={newDevice.assignmentType || ''}
-                    onValueChange={(value) => setNewDevice({ ...newDevice, assignmentType: value as PhoneAssignmentType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PhoneAssignmentType.ASSIGNED_TO_USER}>
-                        Assigned to User
-                      </SelectItem>
-                      <SelectItem value={PhoneAssignmentType.ASSIGNED_TO_EXTENSION}>
-                        Assigned to Extension
-                      </SelectItem>
-                      <SelectItem value={PhoneAssignmentType.COMMON}>
-                        Common Phone
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  </div>
-                </div>
-                </div>
-              </div>
-
-              {/* User Information - Only show if assigned to user */}
-              {newDevice.assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER && (
-                <div className="space-y-4 border-t pt-4">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">User Information</h4>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>First Name</Label>
-                      <Input
-                        value={newDevice.userFirstName || ''}
-                        onChange={(e) => setNewDevice({ ...newDevice, userFirstName: e.target.value })}
-                        placeholder="John"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Last Name</Label>
-                      <Input
-                        value={newDevice.userLastName || ''}
-                        onChange={(e) => setNewDevice({ ...newDevice, userLastName: e.target.value })}
-                        placeholder="Doe"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={newDevice.userEmail || ''}
-                        onChange={(e) => setNewDevice({ ...newDevice, userEmail: e.target.value })}
-                        placeholder="john.doe@example.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Device Details */}
-              <div className="space-y-4 border-t pt-4">
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Device Details</h4>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label>MAC Address</Label>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6">
-                            <Info className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>MAC Address</DialogTitle>
-                            <DialogDescription>
-                              The MAC (Media Access Control) address is a unique identifier for your device.
-                              It&apos;s usually found on a label on the device or in the device settings.
-                              Format: XX:XX:XX:XX:XX:XX
-                            </DialogDescription>
-                          </DialogHeader>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <Input
-                      value={newDevice.macAddress || ''}
-                      onChange={(e) => setNewDevice({ ...newDevice, macAddress: e.target.value })}
-                      placeholder="00:15:5D:01:01:01"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Serial Number</Label>
-                    <Input
-                      value={newDevice.serialNumber || ''}
-                      onChange={(e) => setNewDevice({ ...newDevice, serialNumber: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Extension</Label>
-                    <Input
-                      value={newDevice.extension || ''}
-                      onChange={(e) => setNewDevice({ ...newDevice, extension: e.target.value })}
-                      placeholder="1001"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowAddDevice(false)} 
-                  className="w-full sm:w-auto"
-                >
-                  Cancel Adding Device
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleAddDevice} 
-                  className="w-full sm:w-auto"
-                  disabled={!newDevice.brand || !newDevice.model || newDevice.model === 'Other'}
-                >
-                  Add This Device
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+        }}
+        device={editingDevice}
+        supportedModels={supportedModels}
+        onSave={handleAddDevice}
+      />
     </form>
   );
+}
+
+// Device Card Component
+interface DeviceCardProps {
+  device: Device;
+  onEdit: () => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}
+
+function DeviceCard({ device, onEdit, onRemove, disabled }: DeviceCardProps) {
+  const isUnsupported = device.brand !== PhoneBrand.YEALINK && device.brand !== PhoneBrand.POLYCOM;
+
+  return (
+    <Card className={cn(
+      'relative transition-all duration-200',
+      'bg-gradient-to-br from-card to-card/50 backdrop-blur-sm',
+      'border-border/60 hover:border-primary/30 hover:shadow-lg',
+      device.isUnsupported && 'border-red-500/50 bg-red-50/50 dark:bg-red-900/10',
+      device.hasWarnings && 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10',
+      disabled && 'opacity-60 cursor-not-allowed'
+    )}>
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg font-bold flex items-center gap-2 mb-2">
+              <span className="truncate">{device.brand} {device.model}</span>
+              {device.isUnsupported && (
+                <Badge variant="destructive" className="text-xs font-semibold shrink-0">
+                  Unsupported
+                </Badge>
+              )}
+              {device.hasWarnings && !device.isUnsupported && (
+                <Badge className="text-xs font-semibold shrink-0 bg-amber-500 text-white border-0">
+                  Warning
+                </Badge>
+              )}
+            </CardTitle>
+            {device.warningReason && (
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  {device.warningReason}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {disabled && (
+              <div className="p-2 rounded-lg bg-muted">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            {!disabled && (
+              <>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onEdit}
+                  className="h-8 w-8 p-0 hover:bg-primary/10"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onRemove}
+                  className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {device.deviceTypes && device.deviceTypes.length > 0 && (
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Device Types</Label>
+            <div className="flex flex-wrap gap-2">
+              {device.deviceTypes.map(type => (
+                <Badge key={type} variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20">
+                  {type}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-3 rounded-lg bg-muted/50">
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Assignment</Label>
+            <p className="text-sm font-medium text-foreground">
+              {device.assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? 'Assign to User' : 'Assign to Extension'}
+            </p>
+          </div>
+          {device.extension && (
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Extension</Label>
+              <p className="text-sm font-medium text-foreground">{device.extension}</p>
+            </div>
+          )}
+          {device.macAddress && (
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">MAC Address</Label>
+              <p className="text-sm font-medium text-foreground font-mono">{device.macAddress}</p>
+            </div>
+          )}
+        </div>
+        {isUnsupported && (
+          <Alert variant="destructive" className="mt-2 border-red-500/50 bg-red-50 dark:bg-red-900/20">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-xs font-medium">
+              {device.brand} is not a supported brand. Only Yealink and Polycom are supported.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Device Dialog Component
+interface DeviceDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  device: Device | null;
+  supportedModels: Record<PhoneBrand, string[]>;
+  onSave: (device: Partial<Device>) => void;
+}
+
+function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: DeviceDialogProps) {
+  const [brand, setBrand] = useState<PhoneBrand>(device?.brand || PhoneBrand.YEALINK);
+  const [model, setModel] = useState<string>(device?.model || '');
+  const [modelText, setModelText] = useState<string>('');
+  const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>(device?.deviceTypes || []);
+  const [assignmentType, setAssignmentType] = useState<PhoneAssignmentType>(
+    device?.assignmentType || PhoneAssignmentType.ASSIGNED_TO_USER
+  );
+  const [userFirstName, setUserFirstName] = useState<string>(device?.userFirstName || '');
+  const [userLastName, setUserLastName] = useState<string>(device?.userLastName || '');
+  const [userEmail, setUserEmail] = useState<string>(device?.userEmail || '');
+  const [extension, setExtension] = useState<string>(device?.extension || '');
+  const [macAddress, setMacAddress] = useState<string>(device?.macAddress || '');
+  const [serialNumber, setSerialNumber] = useState<string>(device?.serialNumber || '');
+
+  const isOtherBrand = brand === PhoneBrand.OTHER;
+  const isSupportedBrand = brand === PhoneBrand.YEALINK || brand === PhoneBrand.POLYCOM;
+
+  useEffect(() => {
+    if (device) {
+      setBrand(device.brand);
+      setModel(device.model);
+      setModelText(device.model);
+      setDeviceTypes(device.deviceTypes || []);
+      setAssignmentType(device.assignmentType);
+      setUserFirstName(device.userFirstName || '');
+      setUserLastName(device.userLastName || '');
+      setUserEmail(device.userEmail || '');
+      setExtension(device.extension || '');
+      setMacAddress(device.macAddress || '');
+      setSerialNumber(device.serialNumber || '');
+    } else {
+      // Reset form
+      setBrand(PhoneBrand.YEALINK);
+      setModel('');
+      setModelText('');
+      setDeviceTypes([]);
+      setAssignmentType(PhoneAssignmentType.ASSIGNED_TO_USER);
+      setUserFirstName('');
+      setUserLastName('');
+      setUserEmail('');
+      setExtension('');
+      setMacAddress('');
+      setSerialNumber('');
+    }
+  }, [device, open]);
+
+  const handleSave = () => {
+    const finalModel = isOtherBrand ? modelText : model;
+    if (!brand || !finalModel) return;
+
+    onSave({
+      brand,
+      model: finalModel,
+      deviceTypes,
+      assignmentType,
+      assignedUserId: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? 'user-id' : undefined,
+      userFirstName: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? userFirstName : undefined,
+      userLastName: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? userLastName : undefined,
+      userEmail: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? userEmail : undefined,
+      extension: assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION ? extension : undefined,
+      macAddress,
+      serialNumber,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{device ? 'Edit Device' : 'Add New Device'}</DialogTitle>
+          <DialogDescription>
+            Fill in the device information below
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Brand */}
+          <div className="space-y-2">
+            <Label>Brand *</Label>
+            <Select value={brand} onValueChange={(value) => {
+              setBrand(value as PhoneBrand);
+              setModel('');
+              setModelText('');
+            }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PhoneBrand.YEALINK}>Yealink</SelectItem>
+                <SelectItem value={PhoneBrand.POLYCOM}>Polycom</SelectItem>
+                <SelectItem value={PhoneBrand.OTHER}>Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {!isSupportedBrand && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  {brand} is not a supported brand. Only Yealink and Polycom are supported.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Model */}
+          <div className="space-y-2">
+            <Label>Model *</Label>
+            {isOtherBrand ? (
+              <Input
+                value={modelText}
+                onChange={(e) => setModelText(e.target.value)}
+                placeholder="Enter model name"
+              />
+            ) : (
+              <Select value={model} onValueChange={setModel} disabled={!brand}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedModels[brand]?.map(modelOption => (
+                    <SelectItem key={modelOption} value={modelOption}>
+                      {modelOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Device Types */}
+          {isSupportedBrand && (
+            <div className="space-y-2">
+              <Label>Device Type(s) *</Label>
+              <div className="space-y-2">
+                {Object.values(DeviceType).map(type => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`device-type-${type}`}
+                      checked={deviceTypes.includes(type)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setDeviceTypes([...deviceTypes, type]);
+                        } else {
+                          setDeviceTypes(deviceTypes.filter(t => t !== type));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`device-type-${type}`} className="font-normal text-sm">
+                      {type}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Assignment Type */}
+          {isSupportedBrand && (
+            <div className="space-y-2">
+              <Label>Assignment Type *</Label>
+              <RadioGroup
+                value={assignmentType}
+                onValueChange={(value) => setAssignmentType(value as PhoneAssignmentType)}
+                className="grid gap-3 pt-1"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="assign-user" value={PhoneAssignmentType.ASSIGNED_TO_USER} />
+                  <Label htmlFor="assign-user" className="font-normal text-sm">
+                    Assign to User
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="assign-extension" value={PhoneAssignmentType.ASSIGNED_TO_EXTENSION} />
+                  <Label htmlFor="assign-extension" className="font-normal text-sm">
+                    Assign to Extension
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* User Information (if assigned to user) */}
+          {isSupportedBrand && assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER && (
+            <div className="space-y-4 border-t pt-4">
+              <h4 className="text-sm font-semibold">User Information</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>First Name</Label>
+                  <Input
+                    value={userFirstName}
+                    onChange={(e) => setUserFirstName(e.target.value)}
+                    placeholder="John"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Last Name</Label>
+                  <Input
+                    value={userLastName}
+                    onChange={(e) => setUserLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="john.doe@example.com"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Extension (if assigned to extension) */}
+          {isSupportedBrand && assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION && (
+            <div className="space-y-2">
+              <Label>Extension *</Label>
+              <Input
+                value={extension}
+                onChange={(e) => setExtension(e.target.value)}
+                placeholder="1001"
+              />
+            </div>
+          )}
+
+          {/* Device Details */}
+          {isSupportedBrand && (
+            <div className="space-y-4 border-t pt-4">
+              <h4 className="text-sm font-semibold">Device Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>MAC Address</Label>
+                  <Input
+                    value={macAddress}
+                    onChange={(e) => setMacAddress(e.target.value)}
+                    placeholder="00:15:5D:01:01:01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Serial Number</Label>
+                  <Input
+                    value={serialNumber}
+                    onChange={(e) => setSerialNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={!brand || (!model && !modelText)}>
+              {device ? 'Save Changes' : 'Add Device'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
 }

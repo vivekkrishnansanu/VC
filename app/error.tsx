@@ -16,6 +16,11 @@ export default function Error({
   useEffect(() => {
     // Log error to error tracking service
     console.error('Application error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    if (error.digest) {
+      console.error('Error digest:', error.digest);
+    }
   }, [error]);
 
   return (
@@ -33,7 +38,19 @@ export default function Error({
         <CardContent className="space-y-4">
           <Alert variant="destructive">
             <AlertDescription>
-              {error.message || 'An unexpected error occurred'}
+              <div className="space-y-2">
+                <p className="font-medium">{error.message || 'An unexpected error occurred'}</p>
+                {process.env.NODE_ENV === 'development' && error.stack && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                      Show error details
+                    </summary>
+                    <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-48">
+                      {error.stack}
+                    </pre>
+                  </details>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
 

@@ -1,4 +1,4 @@
-import { LocationOnboarding, OnboardingStatus, ContactMedium, PhoneSystemType, PhoneAssignmentType } from './types';
+import { LocationOnboarding, OnboardingStatus, ContactMedium, PhoneSystemType, PhoneAssignmentType, DeviceOwnership } from './types';
 import { mockLocations } from './locations';
 
 export const mockOnboarding: LocationOnboarding[] = [
@@ -16,6 +16,9 @@ export const mockOnboarding: LocationOnboarding[] = [
     callForwardingSupported: true,
     usesFax: true,
     faxNumber: '+1-555-0101',
+    deviceOwnership: DeviceOwnership.OWNED,
+    hasYealinkOrPolycom: true,
+    buyPhonesThroughVoiceStack: false,
     totalDevices: 12,
     assignmentStrategy: PhoneAssignmentType.ASSIGNED_TO_USER,
     createdAt: new Date('2024-01-05'),
@@ -42,6 +45,8 @@ export const mockOnboarding: LocationOnboarding[] = [
     callForwardingSupported: true,
     usesFax: false,
     wantsFaxInVoiceStack: true,
+    deviceOwnership: DeviceOwnership.NOT_OWNED,
+    buyPhonesThroughVoiceStack: true,
     totalDevices: 8,
     assignmentStrategy: PhoneAssignmentType.ASSIGNED_TO_EXTENSION,
     copiedFromLocationId: mockLocations[0].id,
@@ -63,6 +68,9 @@ export const mockOnboarding: LocationOnboarding[] = [
     callForwardingSupported: true,
     usesFax: true,
     faxNumber: '+1-555-2001',
+    deviceOwnership: DeviceOwnership.OWNED,
+    hasYealinkOrPolycom: true,
+    buyPhonesThroughVoiceStack: false,
     totalDevices: 6,
     assignmentStrategy: PhoneAssignmentType.ASSIGNED_TO_USER,
     createdAt: new Date('2024-01-06'),
@@ -82,6 +90,9 @@ export const mockOnboarding: LocationOnboarding[] = [
     callForwardingSupported: true,
     usesFax: false,
     wantsFaxInVoiceStack: false,
+    deviceOwnership: DeviceOwnership.OWNED,
+    hasYealinkOrPolycom: true,
+    buyPhonesThroughVoiceStack: false,
     totalDevices: 4,
     assignmentStrategy: PhoneAssignmentType.COMMON,
     createdAt: new Date('2024-01-02'),

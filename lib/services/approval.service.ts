@@ -5,6 +5,7 @@
 
 import { ApprovalRequest, ApprovalResponse } from './types';
 import { AuditLogService } from './audit-log.service';
+import { mockDataService } from '@/lib/mock-data/service';
 
 // In-memory approval store (replace with database later)
 const approvals: Map<string, ApprovalResponse> = new Map();
@@ -22,6 +23,10 @@ export class ApprovalService {
       status: 'PENDING',
       requestedBy,
       requestedAt: new Date(),
+      metadata: {
+        locationId: request.locationId,
+        ...request.metadata,
+      },
     };
 
     approvals.set(approvalId, approval);
@@ -43,7 +48,7 @@ export class ApprovalService {
   }
 
   /**
-   * Request phone purchase approval
+   * Request phone purchase approval (for individual unsupported device)
    */
   static requestPhonePurchase(params: {
     phoneId: string;
@@ -73,6 +78,73 @@ export class ApprovalService {
       },
       params.requestedBy
     );
+  }
+
+  /**
+   * Request catalog purchase approval (NEW)
+   * Triggered when buyPhonesThroughVoiceStack = true
+   * Creates approval for entire catalog selection
+   */
+  static requestCatalogPurchase(params: {
+    locationId: string;
+    catalogSelections: Array<{
+      brand: string;
+      model: string;
+      quantity: number;
+      deviceTypes?: string[];
+    }>;
+    requestedBy: string;
+  }): ApprovalResponse {
+    // Calculate total quantity and cost estimate
+    const totalQuantity = params.catalogSelections.reduce((sum, sel) => sum + sel.quantity, 0);
+    
+    return this.requestApproval(
+      {
+        type: 'PHONE_PURCHASE',
+        locationId: params.locationId,
+        entityId: `catalog-${params.locationId}`, // Use location ID as entity ID for catalog purchases
+        metadata: {
+          catalogSelections: params.catalogSelections,
+          totalQuantity,
+          purchaseType: 'CATALOG',
+        },
+      },
+      params.requestedBy
+    );
+  }
+
+  /**
+   * Check if purchase flow should be forced
+   * Rule: If deviceOwnership = NOT_OWNED OR unsupported devices exist
+   */
+  static shouldForcePurchaseFlow(locationId: string): {
+    shouldForce: boolean;
+    reason?: string;
+  } {
+    const onboarding = mockDataService.onboarding.getByLocationId(locationId);
+    if (!onboarding) {
+      return { shouldForce: false };
+    }
+
+    // Force if devices not owned
+    if (onboarding.deviceOwnership === 'NOT_OWNED') {
+      return {
+        shouldForce: true,
+        reason: 'Devices are not owned',
+      };
+    }
+
+    // Force if unsupported devices exist
+    const phones = mockDataService.phones.getByLocationId(locationId);
+    const hasUnsupported = phones.some(p => p.isUnsupported);
+    if (hasUnsupported) {
+      return {
+        shouldForce: true,
+        reason: 'Unsupported devices detected',
+      };
+    }
+
+    return { shouldForce: false };
   }
 
   /**
@@ -166,9 +238,8 @@ export class ApprovalService {
    * Get pending approvals for a location
    */
   static getPendingApprovals(locationId: string): ApprovalResponse[] {
-    // In real implementation, filter by locationId from metadata
     return Array.from(approvals.values()).filter(
-      a => a.status === 'PENDING'
+      a => a.status === 'PENDING' && a.metadata?.locationId === locationId
     );
   }
 

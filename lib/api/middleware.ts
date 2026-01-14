@@ -12,15 +12,61 @@ import {
   createError,
   ErrorCode,
 } from '@/lib/errors';
-import { UserRole } from '@/types';
-import { getCurrentUser } from '@/lib/auth';
+import { UserRole, User } from '@/types';
 
 // ============================================================================
 // Authentication Middleware
 // ============================================================================
 
+/**
+ * Get user from request (server-side)
+ * In production, extract from JWT token or session cookie
+ */
+function getUserFromRequest(request: NextRequest): User | null {
+  // Try to get from cookie (set by client-side auth)
+  const authCookie = request.cookies.get('auth');
+  if (authCookie) {
+    try {
+      // Decode the cookie value (it's URL encoded)
+      const decodedValue = decodeURIComponent(authCookie.value);
+      return JSON.parse(decodedValue) as User;
+    } catch (error) {
+      // Invalid cookie - log for debugging
+      console.warn('Failed to parse auth cookie:', error);
+    }
+  }
+
+  // Fallback: check headers (for API clients)
+  const userId = request.headers.get('x-user-id');
+  const userEmail = request.headers.get('x-user-email');
+  const userRole = request.headers.get('x-user-role') as UserRole | null;
+  const userName = request.headers.get('x-user-name');
+
+  if (userId && userEmail && userRole) {
+    return {
+      id: userId,
+      email: userEmail,
+      name: userName || userEmail,
+      role: userRole,
+    };
+  }
+
+  // Demo/dev fallback: allow local development to work without explicit auth
+  // Also check for NODE_ENV to allow development mode
+  if (process.env.DEMO_AUTH_BYPASS === '1' || process.env.NODE_ENV === 'development') {
+    return {
+      id: 'user-3',
+      email: 'demo.customer@local',
+      name: 'Demo Customer',
+      role: UserRole.CUSTOMER,
+    };
+  }
+
+  return null;
+}
+
 export async function requireAuth(request: NextRequest) {
-  const user = getCurrentUser();
+  const user = getUserFromRequest(request);
   
   if (!user) {
     throw createUnauthorizedError('Authentication required');
@@ -60,17 +106,17 @@ export async function requireCustomer(request: NextRequest) {
 
 export async function requireLocationAccess(
   request: NextRequest,
-  locationId: string
+  locationIdOrAccountId: string
 ) {
   const user = await requireAuth(request);
   
-  // Implementation Leads can access any location
+  // Implementation Leads can access any location/account
   if (user.role === UserRole.IMPLEMENTATION_LEAD || user.role === UserRole.ADMIN) {
     return user;
   }
   
-  // Customers can only access their assigned locations
-  // TODO: Implement location assignment check
+  // Customers can only access their assigned locations/accounts
+  // TODO: Implement location/account assignment check
   // For now, allow access (will be implemented with real database)
   
   return user;

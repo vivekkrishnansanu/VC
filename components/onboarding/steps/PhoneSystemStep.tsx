@@ -15,6 +15,7 @@ import { PhoneSystemType } from '@/lib/mock-data/types';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Info, AlertCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,10 @@ const phoneSystemSchema = z.object({
   phoneSystemDetails: z.string().optional(),
   phoneSystemVoipType: z.string().optional(),
   callForwardingSupported: z.boolean().optional(),
-  usesFax: z.boolean().optional(),
+  usesFax: z.boolean({
+    required_error: 'Select Yes or No',
+    invalid_type_error: 'Select Yes or No',
+  }),
   faxNumber: z.string().optional(),
   wantsFaxInVoiceStack: z.boolean().optional(),
 }).refine(
@@ -45,7 +49,27 @@ const phoneSystemSchema = z.object({
   {
     message: 'Phone system details are required',
   }
-);
+).superRefine((data, ctx) => {
+  if (data.usesFax === true) {
+    if (!data.faxNumber || data.faxNumber.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['faxNumber'],
+        message: 'FAX number is required when you use fax',
+      });
+    }
+  }
+
+  if (data.usesFax === false) {
+    if (data.wantsFaxInVoiceStack === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['wantsFaxInVoiceStack'],
+        message: 'Select Yes or No',
+      });
+    }
+  }
+});
 
 type PhoneSystemFormData = z.infer<typeof phoneSystemSchema>;
 
@@ -337,22 +361,40 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="usesFax" className="text-sm font-medium">Do you currently use FAX?</Label>
-              <div className="flex items-center space-x-2 pt-1">
-                <Checkbox
-                  id="usesFax"
-                  checked={watch('usesFax') || false}
-                  onCheckedChange={(checked) => {
-                    setValue('usesFax', checked as boolean);
-                    if (!checked) {
-                      setValue('faxNumber', '');
-                    }
-                  }}
-                />
-                <Label htmlFor="usesFax" className="font-normal text-sm">
-                  Yes, we use FAX
-                </Label>
-              </div>
+              <Label className="text-sm font-medium">
+                Do you currently use fax? <span className="text-destructive">*</span>
+              </Label>
+              <RadioGroup
+                value={usesFax === true ? 'yes' : usesFax === false ? 'no' : ''}
+                onValueChange={(v) => {
+                  const value = v === 'yes';
+                  setValue('usesFax', value, { shouldValidate: true, shouldDirty: true });
+                  if (value) {
+                    // If they use fax, clear the VoiceStack fax follow-up
+                    setValue('wantsFaxInVoiceStack', undefined, { shouldValidate: true });
+                  } else {
+                    // If they don't use fax, clear fax number
+                    setValue('faxNumber', '', { shouldValidate: true });
+                  }
+                }}
+                className="grid gap-3 pt-1"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="usesFax-yes" value="yes" />
+                  <Label htmlFor="usesFax-yes" className="font-normal text-sm">
+                    Yes
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="usesFax-no" value="no" />
+                  <Label htmlFor="usesFax-no" className="font-normal text-sm">
+                    No
+                  </Label>
+                </div>
+              </RadioGroup>
+              {errors.usesFax && (
+                <p className="text-xs text-destructive mt-1">{errors.usesFax.message}</p>
+              )}
             </div>
 
             {usesFax && (
@@ -373,19 +415,43 @@ export function PhoneSystemStep({ locationId, onComplete, skipRules }: PhoneSyst
 
             {usesFax === false && (
               <div className="space-y-2">
-                <Label htmlFor="wantsFaxInVoiceStack" className="text-sm font-medium">
-                  Would you like FAX capability in VoiceStack?
+                <Label className="text-sm font-medium">
+                  Do you want to use fax in VoiceStack? <span className="text-destructive">*</span>
                 </Label>
-                <div className="flex items-center space-x-2 pt-1">
-                  <Checkbox
-                    id="wantsFaxInVoiceStack"
-                    checked={watch('wantsFaxInVoiceStack') || false}
-                    onCheckedChange={(checked) => setValue('wantsFaxInVoiceStack', checked as boolean)}
-                  />
-                  <Label htmlFor="wantsFaxInVoiceStack" className="font-normal text-sm">
-                    Yes, I want FAX in VoiceStack
-                  </Label>
-                </div>
+                <RadioGroup
+                  value={
+                    watch('wantsFaxInVoiceStack') === true
+                      ? 'yes'
+                      : watch('wantsFaxInVoiceStack') === false
+                        ? 'no'
+                        : ''
+                  }
+                  onValueChange={(v) => {
+                    setValue('wantsFaxInVoiceStack', v === 'yes', {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                  }}
+                  className="grid gap-3 pt-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem id="vsFax-yes" value="yes" />
+                    <Label htmlFor="vsFax-yes" className="font-normal text-sm">
+                      Yes
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem id="vsFax-no" value="no" />
+                    <Label htmlFor="vsFax-no" className="font-normal text-sm">
+                      No
+                    </Label>
+                  </div>
+                </RadioGroup>
+                {errors.wantsFaxInVoiceStack && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.wantsFaxInVoiceStack.message}
+                  </p>
+                )}
               </div>
             )}
           </div>

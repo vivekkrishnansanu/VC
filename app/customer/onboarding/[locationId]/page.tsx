@@ -50,7 +50,7 @@ export default function CustomerOnboardingPage() {
 
   return (
     <div className="h-screen bg-background overflow-hidden">
-      <div className="flex h-full w-full gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-6 md:py-6">
+      <div className="flex h-full w-full gap-3 px-4 py-4 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-4 md:py-4">
         <OnboardingWizard locationId={locationId} initialSession={session} locationName={location.name} />
       </div>
     </div>

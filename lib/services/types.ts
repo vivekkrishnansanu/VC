@@ -54,6 +54,7 @@ export interface ApprovalResponse {
   approvedBy?: string;
   approvedAt?: Date;
   comments?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface ExtensionSeriesConfig {
