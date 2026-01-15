@@ -5,14 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { UserRole } from "@/types";
-import { Loader2, Mail, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  fullName: z.string().min(2, "Please enter your full name"),
+  workEmail: z.string().email("Please enter a valid work email address"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -21,12 +22,11 @@ export default function LoginForm() {
   const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
-    name: "",
-    email: "",
+    fullName: "",
+    workEmail: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof LoginFormData, boolean>>>({});
-  const [focusedField, setFocusedField] = useState<keyof LoginFormData | null>(null);
 
   const validateField = (field: keyof LoginFormData, value: string) => {
     try {
@@ -44,11 +44,6 @@ export default function LoginForm() {
   const handleBlur = (field: keyof LoginFormData) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     validateField(field, formData[field]);
-    setFocusedField(null);
-  };
-
-  const handleFocus = (field: keyof LoginFormData) => {
-    setFocusedField(field);
   };
 
   const handleChange = (field: keyof LoginFormData, value: string) => {
@@ -62,7 +57,7 @@ export default function LoginForm() {
     e.preventDefault();
     
     // Mark all fields as touched
-    setTouched({ name: true, email: true });
+    setTouched({ fullName: true, workEmail: true });
 
     // Validate entire form
     const result = loginSchema.safeParse(formData);
@@ -78,175 +73,147 @@ export default function LoginForm() {
 
     try {
       setIsSubmitting(true);
+      // Determine role based on work email
       const role =
-        result.data.email.includes("@company.com") ||
-        result.data.email.includes("implementation")
+        result.data.workEmail.includes("@company.com") ||
+        result.data.workEmail.includes("implementation")
           ? UserRole.IMPLEMENTATION_LEAD
           : UserRole.CUSTOMER;
 
       await signIn({
         id: `user-${Date.now()}`,
-        name: result.data.name,
-        email: result.data.email,
+        name: result.data.fullName,
+        email: result.data.workEmail,
         role,
       });
     } catch (error) {
       console.error("Login error:", error);
-      // Error handling can be enhanced with toast notifications
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Check if form is valid by validating the schema
+  const handleSocialLogin = (provider: "google" | "facebook") => {
+    // Placeholder for social login
+    console.log(`Login with ${provider}`);
+  };
+
+  // Check if form is valid
   const validationResult = loginSchema.safeParse(formData);
   const isFormValid = validationResult.success && !isSubmitting;
 
-  const isFieldValid = (field: keyof LoginFormData) => {
-    return touched[field] && !errors[field] && formData[field].length > 0;
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Full Name Field */}
-      <div className="space-y-2.5">
-        <Label 
-          htmlFor="name" 
-          className="text-sm font-semibold text-foreground flex items-center gap-2"
+    <div style={{ fontFamily: 'sans-serif' }}>
+      {/* Branding Area */}
+      <div className="flex items-center gap-2 mb-6" style={{ gap: '8px' }}>
+        <img
+          src="https://voicestack.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvoicestack-logo.91a9d9aa.svg&w=384&q=75&dpl=dpl_6YQQQr5c5yUDQKfyirHUrb7KDZfE"
+          alt="VoiceStack"
+          style={{ width: '128px', height: '64px' }}
+          loading="eager"
+        />
+      </div>
+
+      {/* Welcome Message */}
+      <div style={{ marginBottom: '24px' }}>
+        <h2 
+          className="font-bold text-black"
+          style={{ fontSize: '30px', marginBottom: '8px', marginTop: '8px' }}
         >
-          <User className="h-4 w-4 text-muted-foreground" />
-          Full name
-        </Label>
-        <div className="relative">
+          Welcome Back
+        </h2>
+        <p 
+          className="font-normal"
+          style={{ fontSize: '16px', color: '#4B5563' }}
+        >
+          The Most Advanced Enterprise Phone System! 
+        </p>
+      </div>
+
+      {/* Separator */}
+      <div className="flex items-center" style={{ gap: '16px', marginBottom: '24px' }}>
+        <Separator className="flex-1" />
+        <Separator className="flex-1" />
+      </div>
+
+      {/* Login Form */}
+      <form onSubmit={handleSubmit}>
+        {/* Full Name Field */}
+        <div style={{ marginBottom: '16px' }}>
+          <Label 
+            htmlFor="fullName" 
+            className="font-bold text-black block"
+            style={{ fontSize: '14px', marginBottom: '8px' }}
+          >
+            Full Name<span className="text-destructive">*</span>
+          </Label>
           <Input
-            id="name"
+            id="fullName"
             type="text"
-            placeholder="John Doe"
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            onBlur={() => handleBlur("name")}
-            onFocus={() => handleFocus("name")}
-            autoComplete="name"
-            aria-invalid={touched.name && errors.name ? "true" : "false"}
-            aria-describedby={touched.name && errors.name ? "name-error" : undefined}
+            placeholder="Enter your full name"
+            value={formData.fullName}
+            onChange={(e) => handleChange("fullName", e.target.value)}
+            onBlur={() => handleBlur("fullName")}
             className={cn(
-              "h-12 transition-all duration-200",
-              "focus:border-primary focus:ring-2 focus:ring-primary/20",
-              touched.name && errors.name && "border-destructive focus:border-destructive focus:ring-destructive/20",
-              isFieldValid("name") && "border-green-500/50 focus:border-green-500 focus:ring-green-500/20",
-              focusedField === "name" && "shadow-lg shadow-primary/5"
+              "w-full border-gray-300 focus:border-primary focus:ring-primary rounded-md",
+              touched.fullName && errors.fullName && "border-destructive"
             )}
+            style={{ height: '40px', fontSize: '16px' }}
           />
-          {isFieldValid("name") && (
-            <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-          )}
-          {touched.name && errors.name && (
-            <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-destructive" />
+          {touched.fullName && errors.fullName && (
+            <p className="text-sm text-destructive" style={{ marginTop: '4px' }}>{errors.fullName}</p>
           )}
         </div>
-        {touched.name && errors.name && (
-          <p 
-            id="name-error" 
-            className="text-sm text-destructive flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1" 
-            role="alert"
-          >
-            <AlertCircle className="h-3.5 w-3.5" />
-            {errors.name}
-          </p>
-        )}
-      </div>
 
-      {/* Work Email Field */}
-      <div className="space-y-2.5">
-        <Label 
-          htmlFor="email" 
-          className="text-sm font-semibold text-foreground flex items-center gap-2"
-        >
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          Work email
-        </Label>
-        <div className="relative">
+        {/* Work Email Field */}
+        <div style={{ marginBottom: '24px' }}>
+          <Label 
+            htmlFor="workEmail" 
+            className="font-bold text-black block"
+            style={{ fontSize: '14px', marginBottom: '8px' }}
+          >
+            Work Email<span className="text-destructive">*</span>
+          </Label>
           <Input
-            id="email"
+            id="workEmail"
             type="email"
-            placeholder="john.doe@company.com"
-            value={formData.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-            onBlur={() => handleBlur("email")}
-            onFocus={() => handleFocus("email")}
-            autoComplete="email"
-            inputMode="email"
-            aria-invalid={touched.email && errors.email ? "true" : "false"}
-            aria-describedby={touched.email && errors.email ? "email-error" : undefined}
+            placeholder="Enter your work email address"
+            value={formData.workEmail}
+            onChange={(e) => handleChange("workEmail", e.target.value)}
+            onBlur={() => handleBlur("workEmail")}
             className={cn(
-              "h-12 transition-all duration-200",
-              "focus:border-primary focus:ring-2 focus:ring-primary/20",
-              touched.email && errors.email && "border-destructive focus:border-destructive focus:ring-destructive/20",
-              isFieldValid("email") && "border-green-500/50 focus:border-green-500 focus:ring-green-500/20",
-              focusedField === "email" && "shadow-lg shadow-primary/5"
+              "w-full border-gray-300 focus:border-primary focus:ring-primary rounded-md",
+              touched.workEmail && errors.workEmail && "border-destructive"
             )}
+            style={{ height: '40px', fontSize: '16px' }}
           />
-          {isFieldValid("email") && (
-            <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-          )}
-          {touched.email && errors.email && (
-            <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-destructive" />
+          {touched.workEmail && errors.workEmail && (
+            <p className="text-sm text-destructive" style={{ marginTop: '4px' }}>{errors.workEmail}</p>
           )}
         </div>
-        <div className="rounded-lg bg-muted/50 p-3 border border-border/50">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground">Demo mode:</span> Emails containing{" "}
-            <span className="font-medium text-primary">@company.com</span> or{" "}
-            <span className="font-medium text-primary">implementation</span> will sign in as an{" "}
-            <span className="font-medium text-foreground">Implementation Lead</span>.
-          </p>
-        </div>
-        {touched.email && errors.email && (
-          <p 
-            id="email-error" 
-            className="text-sm text-destructive flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1" 
-            role="alert"
-          >
-            <AlertCircle className="h-3.5 w-3.5" />
-            {errors.email}
-          </p>
-        )}
-      </div>
 
-      {/* Primary CTA Button */}
-      <div 
-        className="text-center grid flex-wrap"
-        style={{
-          paddingTop: '2px',
-          paddingBottom: '2px',
-          backgroundColor: 'rgba(74, 60, 225, 1)',
-          color: 'rgba(255, 255, 255, 1)',
-          borderRadius: '4px',
-          borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-          borderBottomRightRadius: '4px',
-          borderBottomLeftRadius: '4px'
-        }}
-      >
+        {/* Sign In Button */}
         <Button
           type="submit"
-          className="w-full h-12 text-base font-semibold text-white rounded-[4px]"
+          className="w-full text-white font-bold rounded-md"
           style={{ 
-            backgroundColor: 'rgba(74, 60, 225, 1)'
+            height: '44px', 
+            fontSize: '16px',
+            backgroundColor: '#4A3CE1',
+            border: 'none'
           }}
           disabled={!isFormValid || isSubmitting}
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Signing in...</span>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Signing in...
             </>
           ) : (
-            "Sign in"
+            "Sign in to VoiceStack"
           )}
         </Button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
-
