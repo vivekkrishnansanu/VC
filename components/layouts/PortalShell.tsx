@@ -127,7 +127,7 @@ export function PortalShell({
         {/* Sidebar */}
         <aside className="hidden w-72 shrink-0 lg:block">
           <div className="sticky top-8 h-[calc(100vh-4rem)] flex flex-col">
-            <div className="rounded-3xl border border-slate-200/60 bg-white/80 backdrop-blur-xl p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] flex flex-col h-full">
+            <div className="rounded-3xl border border-slate-200/60 bg-white/80 backdrop-blur-xl p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)] flex flex-col h-full w-full">
               {/* Premium Branding */}
               <div className="pb-8">
                 <Logo size="md" variant="default" />
@@ -248,7 +248,7 @@ export function PortalShell({
         {/* Main */}
         <main className="min-w-0 flex-1">
           {/* Topbar */}
-          <div className="sticky top-0 z-10 -mx-6 px-6 pb-6 pt-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12 bg-gradient-to-br from-slate-50 via-white to-slate-50/50 backdrop-blur-sm">
+          <div className="sticky top-0 z-10 -mx-6 px-6 pb-6 pt-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
             <div className="rounded-2xl border border-slate-200/60 bg-white/80 backdrop-blur-xl p-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-lg group/search">
