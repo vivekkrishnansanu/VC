@@ -257,7 +257,7 @@ export default function ImplementationLeadDashboard() {
               No accounts found. Create your first account to get started.
             </p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 grid-rows-3">
               {accounts.map((account) => (
                 <AccountCard
                   key={account.id}
