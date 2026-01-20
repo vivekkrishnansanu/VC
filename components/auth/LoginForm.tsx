@@ -8,12 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { UserRole } from "@/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
-  fullName: z.string().min(2, "Please enter your full name"),
-  workEmail: z.string().email("Please enter a valid work email address"),
+  fullName: z
+    .string()
+    .min(2, "Please enter your full name")
+    .max(120, "Name is too long"),
+  email: z
+    .string()
+    .email("Please enter a valid work email address")
+    .regex(
+      /@.+\./,
+      "Please use your work email address"
+    ),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -23,7 +32,7 @@ export default function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     fullName: "",
-    workEmail: "",
+    email: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof LoginFormData, boolean>>>({});
@@ -57,7 +66,7 @@ export default function LoginForm() {
     e.preventDefault();
     
     // Mark all fields as touched
-    setTouched({ fullName: true, workEmail: true });
+    setTouched({ fullName: true, email: true });
 
     // Validate entire form
     const result = loginSchema.safeParse(formData);
@@ -73,17 +82,17 @@ export default function LoginForm() {
 
     try {
       setIsSubmitting(true);
-      // Determine role based on work email
+      const name = result.data.fullName.trim();
       const role =
-        result.data.workEmail.includes("@company.com") ||
-        result.data.workEmail.includes("implementation")
+        result.data.email.includes("@company.com") ||
+        result.data.email.includes("implementation")
           ? UserRole.IMPLEMENTATION_LEAD
           : UserRole.CUSTOMER;
 
       await signIn({
         id: `user-${Date.now()}`,
-        name: result.data.fullName,
-        email: result.data.workEmail,
+        name: name || "User",
+        email: result.data.email,
         role,
       });
     } catch (error) {
@@ -91,11 +100,6 @@ export default function LoginForm() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSocialLogin = (provider: "google" | "facebook") => {
-    // Placeholder for social login
-    console.log(`Login with ${provider}`);
   };
 
   // Check if form is valid
@@ -145,11 +149,12 @@ export default function LoginForm() {
             className="font-bold text-black block"
             style={{ fontSize: '14px', marginBottom: '8px' }}
           >
-            Full Name<span className="text-destructive">*</span>
+            Full name<span className="text-destructive">*</span>
           </Label>
           <Input
             id="fullName"
             type="text"
+            autoComplete="name"
             placeholder="Enter your full name"
             value={formData.fullName}
             onChange={(e) => handleChange("fullName", e.target.value)}
@@ -166,29 +171,30 @@ export default function LoginForm() {
         </div>
 
         {/* Work Email Field */}
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <Label 
-            htmlFor="workEmail" 
+            htmlFor="email" 
             className="font-bold text-black block"
             style={{ fontSize: '14px', marginBottom: '8px' }}
           >
-            Work Email<span className="text-destructive">*</span>
+            Work email<span className="text-destructive">*</span>
           </Label>
           <Input
-            id="workEmail"
+            id="email"
             type="email"
-            placeholder="Enter your work email address"
-            value={formData.workEmail}
-            onChange={(e) => handleChange("workEmail", e.target.value)}
-            onBlur={() => handleBlur("workEmail")}
+            autoComplete="email"
+            placeholder="you@company.com"
+            value={formData.email}
+            onChange={(e) => handleChange("email", e.target.value)}
+            onBlur={() => handleBlur("email")}
             className={cn(
               "w-full border-gray-300 focus:border-primary focus:ring-primary rounded-md",
-              touched.workEmail && errors.workEmail && "border-destructive"
+              touched.email && errors.email && "border-destructive"
             )}
             style={{ height: '40px', fontSize: '16px' }}
           />
-          {touched.workEmail && errors.workEmail && (
-            <p className="text-sm text-destructive" style={{ marginTop: '4px' }}>{errors.workEmail}</p>
+          {touched.email && errors.email && (
+            <p className="text-sm text-destructive" style={{ marginTop: '4px' }}>{errors.email}</p>
           )}
         </div>
 

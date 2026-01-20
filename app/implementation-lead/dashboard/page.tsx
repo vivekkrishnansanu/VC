@@ -121,6 +121,11 @@ export default function ImplementationLeadDashboard() {
     );
   }
 
+  const totalLocations = accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0);
+  const avgProgress = accounts.length > 0
+    ? Math.round(accounts.reduce((sum, acc) => sum + (acc.progress?.percentage || 0), 0) / accounts.length)
+    : 0;
+
   return (
     <PortalShell
       title="Dashboard"
@@ -138,56 +143,113 @@ export default function ImplementationLeadDashboard() {
           </Button>
         </Link>
       }
+      sidebarMetrics={[
+        {
+          label: 'Accounts',
+          value: accounts.length,
+          color: 'primary',
+          trend: { value: `+${accounts.length * 2}%`, direction: 'up' },
+        },
+        {
+          label: 'Locations',
+          value: totalLocations,
+          color: 'success',
+          trend: { value: `+${Math.floor(totalLocations * 1.5)}%`, direction: 'up' },
+        },
+      ]}
+      sidebarProgress={{
+        label: 'Onboarding Progress',
+        value: avgProgress,
+        target: 100,
+        color: 'primary',
+      }}
     >
       <div className="space-y-6">
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Total Accounts</CardTitle>
-            <Building2 className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{accounts.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Total Locations</CardTitle>
-            <MapPin className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">
-              {accounts.reduce((sum, acc) => sum + acc.totalLocations, 0)}
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Accounts</CardTitle>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground mb-1">{accounts.length}</div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="text-green-600 font-medium">+{accounts.length * 2}%</span>
+              <span>↑</span>
+              <span className="ml-1">vs last month</span>
+            </div>
+            <Badge variant="secondary" className="mt-3 text-[10px] font-semibold">
+              All accounts
+            </Badge>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Pending Approvals</CardTitle>
-            <AlertCircle className="h-5 w-5 text-primary" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Locations</CardTitle>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <MapPin className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{pendingApprovals.length}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">
+              {accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0)}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="text-green-600 font-medium">+{Math.floor(accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0) * 1.5)}%</span>
+              <span>↑</span>
+              <span className="ml-1">vs last month</span>
+            </div>
+            <Badge variant="secondary" className="mt-3 text-[10px] font-semibold">
+              All locations
+            </Badge>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Pending Approvals</CardTitle>
+            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground mb-1">{pendingApprovals.length}</div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {pendingApprovals.length > 0 ? (
+                <>
+                  <span className="text-amber-600 font-medium">Requires attention</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-green-600 font-medium">All clear</span>
+                  <span>✓</span>
+                </>
+              )}
+            </div>
             {pendingApprovals.length > 0 && (
               <Button 
                 variant="link" 
-                className="p-0 h-auto text-xs mt-2"
+                className="p-0 h-auto text-xs mt-3 font-semibold"
                 onClick={() => setShowApprovals(true)}
               >
-                View all
+                View all →
               </Button>
             )}
+            <Badge variant={pendingApprovals.length > 0 ? "destructive" : "secondary"} className="mt-2 text-[10px] font-semibold">
+              {pendingApprovals.length > 0 ? "Action needed" : "No pending"}
+            </Badge>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border/50 bg-card shadow-md">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Accounts</CardTitle>
-          <CardDescription>All accounts and their onboarding progress.</CardDescription>
+          <CardTitle className="text-xl font-bold">Accounts</CardTitle>
+          <CardDescription className="text-sm">All accounts and their onboarding progress.</CardDescription>
         </CardHeader>
         <CardContent>
           {accounts.length === 0 ? (

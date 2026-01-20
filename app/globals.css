@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* ---break---
+     */
+@custom-variant dark (&:is(.dark *));
 
 @layer base {
   :root {
@@ -11,42 +14,42 @@
     --card-foreground: 236 68% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 236 68% 5%;
-    
+
     /* Primary (homepage slateblue) */
     --primary: 241 59% 62%; /* #6463d7 */
     --primary-foreground: 0 0% 100%;
-    
+
     /* Secondary surfaces (logo lightsteelblue tint) */
     --secondary: 238 92% 96%;
     --secondary-foreground: 236 68% 5%;
-    
+
     /* Muted surfaces + text */
     --muted: 238 92% 98%;
     --muted-foreground: 221 10% 37%; /* #545a67 */
-    
+
     /* Accent (homepage mediumslateblue) */
     --accent: 258 76% 64%; /* #875ce9 */
     --accent-foreground: 0 0% 100%;
-    
+
     /* Clean Destructive */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    
+
     /* Borders / inputs */
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 241 59% 62%;
-    
+
     /* Modern Border Radius */
     --radius: 0.75rem;
-    
+
     /* Chart Colors (match site accents) */
     --chart-1: 241 59% 62%;  /* #6463d7 */
     --chart-2: 240 87% 67%;  /* #6464f4 */
     --chart-3: 231 91% 71%;  /* #7084f8 */
     --chart-4: 238 92% 86%;  /* #babcfc */
     --chart-5: 258 76% 64%;  /* #875ce9 */
-    
+
     /* Design System Enhancements */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -92,13 +95,13 @@
     border-color: hsl(var(--border));
     box-sizing: border-box;
   }
-  
+
   *,
   *::before,
   *::after {
     box-sizing: border-box;
   }
-  
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
@@ -106,26 +109,26 @@
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  
+
   /* Untitled-like Typography */
   h1 {
     font-weight: 650;
     line-height: 1.15;
     letter-spacing: -0.02em;
   }
-  
+
   h2 {
     font-weight: 650;
     line-height: 1.2;
     letter-spacing: -0.015em;
   }
-  
+
   h3, h4, h5, h6 {
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: -0.01em;
   }
-  
+
   /* Smooth Focus States */
   *:focus-visible {
     /* Avoid "double focus" (outline + component rings). Components handle focus rings. */
@@ -141,6 +144,68 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .slide-in-from-bottom-4 {
+    animation: slide-in-from-bottom-4 0.5s ease-out;
+  }
+
+  @keyframes slide-in-from-bottom-4 {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }
 
 /* Ensure Select dropdowns and Dialogs always render on top */
@@ -153,22 +218,22 @@
   [data-radix-popper-content-wrapper] {
     z-index: 10000 !important;
   }
-  
+
   [data-radix-select-content] {
     z-index: 10000 !important;
     background-color: white !important;
   }
-  
+
   /* Ensure Select items have proper backgrounds */
   [data-radix-select-item] {
     background-color: white !important;
   }
-  
+
   [data-radix-select-item]:hover,
   [data-radix-select-item]:focus {
     background-color: hsl(var(--muted)) !important;
   }
-  
+
   /* Ensure input and select borders are not clipped */
   input,
   select,
@@ -178,16 +243,63 @@
     box-sizing: border-box !important;
     border-width: 1px !important;
   }
-  
+
   [data-radix-dialog-content] {
     z-index: 100 !important;
     background-color: white !important;
   }
-  
+
   [data-radix-dialog-overlay] {
     z-index: 99 !important;
     background-color: rgba(0, 0, 0, 0.8) !important;
     backdrop-filter: blur(4px) !important;
+  }
+}
+/* ---break---
+     */
+:root {
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+/* ---break---
+     */
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+/* ---break---
+     */
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+/* ---break---
+     */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 

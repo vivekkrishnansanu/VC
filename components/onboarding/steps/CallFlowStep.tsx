@@ -1,26 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Plus, X, Info } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 
 interface IVROption {
   id: string;
@@ -74,6 +64,18 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
           targets: opt.targets || [],
         })));
       }
+      
+      // Load direct routing data (when IVR is disabled)
+      if (!onboarding.hasIVR) {
+        // Try to infer ring type from existing data
+        if (onboarding.directRingUsers && onboarding.directRingUsers.length > 0) {
+          setDirectRingType('users');
+          setDirectTargets(onboarding.directRingUsers.map(userId => ({ userId })));
+        } else if (onboarding.directRingExtensions && onboarding.directRingExtensions.length > 0) {
+          setDirectRingType('extensions');
+          setDirectTargets(onboarding.directRingExtensions.map(ext => ({ extension: ext })));
+        }
+      }
     }
   }, [locationId]);
 
@@ -102,6 +104,14 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
   };
 
   const handleSave = async () => {
+    // Prepare direct routing data
+    const directRingUsers = !hasIVR && directRingType === 'users' 
+      ? directTargets.map(t => t.userId).filter(Boolean) 
+      : undefined;
+    const directRingExtensions = !hasIVR && directRingType === 'extensions'
+      ? directTargets.map(t => t.extension).filter(Boolean)
+      : undefined;
+
     await fetch('/api/onboarding/data', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -116,6 +126,8 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
           ivrInvalidSelectionScript: hasIVR ? ivrInvalidSelectionScript : undefined,
           ivrAfterRetriesTarget: hasIVR ? ivrAfterRetriesTarget : undefined,
           ivrOptions: hasIVR ? ivrOptions : undefined,
+          directRingUsers,
+          directRingExtensions,
           voicemailScript,
           sharedVoicemailUsers,
         },
@@ -224,6 +236,57 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               </Button>
             </div>
 
+            {/* Global IVR Settings (shown when IVR is enabled; outside options) */}
+            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-border/60">
+              <CardContent className="p-6 space-y-5">
+                <h4 className="text-base font-bold text-foreground">Global IVR Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Retry Attempts</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={ivrRetryAttempts}
+                      onChange={(e) => setIvrRetryAttempts(parseInt(e.target.value) || 0)}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Wait Time (seconds)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={ivrWaitTime}
+                      onChange={(e) => setIvrWaitTime(parseInt(e.target.value) || 0)}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Invalid Selection Script</Label>
+                  <Textarea
+                    value={ivrInvalidSelectionScript}
+                    onChange={(e) => setIvrInvalidSelectionScript(e.target.value)}
+                    placeholder="Invalid selection. Please try again..."
+                    rows={2}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">After Retry Routing</Label>
+                  <Select value={ivrAfterRetriesTarget} onValueChange={setIvrAfterRetriesTarget}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select routing target" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="voicemail">Go to Voicemail</SelectItem>
+                      <SelectItem value="operator">Operator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* IVR Options List */}
             {ivrOptions.length > 0 && (
               <div className="space-y-4">
@@ -231,9 +294,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                   <Card key={option.id} className="bg-gradient-to-br from-card to-card/50 border-border/60">
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-base font-bold text-foreground">
-                          Option {option.optionNumber}
-                        </h4>
+                        <h4 className="text-base font-bold text-foreground">Option {option.optionNumber}</h4>
                         <Button
                           type="button"
                           variant="ghost"
@@ -244,21 +305,30 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-sm font-semibold">Option Label (Optional)</Label>
-                          <Input
+                          <Label className="text-sm font-semibold">
+                            Option Script <span className="text-destructive">*</span>
+                          </Label>
+                          <Textarea
                             value={option.label || ''}
                             onChange={(e) => updateIVROption(option.id, 'label', e.target.value)}
-                            placeholder="Press 1 for sales"
+                            placeholder="Press 1 for sales, press 2 for support..."
+                            rows={2}
                             className="bg-background"
                           />
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-semibold">Ring Type</Label>
+                          <Label className="text-sm font-semibold">
+                            Ring Type <span className="text-destructive">*</span>
+                          </Label>
                           <Select
                             value={option.ringType}
-                            onValueChange={(value) => updateIVROption(option.id, 'ringType', value as 'users' | 'extensions')}
+                            onValueChange={(value) =>
+                              updateIVROption(option.id, 'ringType', value as 'users' | 'extensions')
+                            }
                           >
                             <SelectTrigger className="bg-background">
                               <SelectValue />
@@ -269,8 +339,11 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                             </SelectContent>
                           </Select>
                         </div>
+
                         <div className="space-y-3">
-                          <Label className="text-sm font-semibold">Routing Targets</Label>
+                          <Label className="text-sm font-semibold">
+                            Routing Targets <span className="text-destructive">*</span>
+                          </Label>
                           <div className="space-y-2">
                             {option.targets.map((target, targetIndex) => (
                               <div key={targetIndex} className="flex gap-2">
@@ -309,6 +382,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                               </div>
                             ))}
                           </div>
+
                           <Button
                             type="button"
                             variant="outline"
@@ -326,65 +400,13 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                 ))}
               </div>
             )}
-
-            {/* Global IVR Settings (shown below options) */}
-            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-border/60">
-              <CardContent className="p-6 space-y-5">
-                <h4 className="text-base font-bold text-foreground">Global IVR Settings</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Retry Attempts</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={ivrRetryAttempts}
-                      onChange={(e) => setIvrRetryAttempts(parseInt(e.target.value) || 0)}
-                      className="bg-background"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Wait Time (seconds)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={ivrWaitTime}
-                      onChange={(e) => setIvrWaitTime(parseInt(e.target.value) || 0)}
-                      className="bg-background"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Invalid Selection Script</Label>
-                  <Textarea
-                    value={ivrInvalidSelectionScript}
-                    onChange={(e) => setIvrInvalidSelectionScript(e.target.value)}
-                    placeholder="Invalid selection. Please try again..."
-                    rows={2}
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">After Retry Routing</Label>
-                  <Select
-                    value={ivrAfterRetriesTarget}
-                    onValueChange={setIvrAfterRetriesTarget}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Select routing target" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="voicemail">Go to Voicemail</SelectItem>
-                      <SelectItem value="operator">Operator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         ) : (
           <div className="space-y-4 overflow-visible">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Direct Ring Type</Label>
+              <Label className="text-sm font-medium">
+                Direct Ring Type <span className="text-destructive">*</span>
+              </Label>
               <div className="relative z-0">
                 <Select
                   value={directRingType}
@@ -402,7 +424,9 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Targets to Ring</Label>
+              <Label className="text-sm font-medium">
+                Targets to Ring <span className="text-destructive">*</span>
+              </Label>
               <div className="space-y-2">
                 {directTargets.map((target, index) => (
                   <div key={index} className="flex gap-2">

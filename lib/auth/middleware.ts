@@ -30,7 +30,7 @@ export function getAuthContext(request: NextRequest): AuthContext | null {
   if (!userId || !userRole) {
     // Demo/dev fallback: allow local development to work without explicit headers.
     // Enable with DEMO_AUTH_BYPASS=1 (never set in production).
-    if (process.env.DEMO_AUTH_BYPASS === '1') {
+    if (process.env.DEMO_AUTH_BYPASS === '1' || process.env.NODE_ENV === 'development') {
       return {
         userId: 'user-3',
         userRole: UserRole.CUSTOMER,

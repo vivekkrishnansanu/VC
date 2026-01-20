@@ -52,7 +52,12 @@ const nextConfig: NextConfig = {
 
   // Image optimization
   images: {
-    domains: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'voicestack.com',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
 

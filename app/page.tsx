@@ -7,19 +7,8 @@ export default function Home() {
   const router = useRouter();
   
   useEffect(() => {
-    router.push('/login');
+    router.replace('/login');
   }, [router]);
 
-  return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      minHeight: '100vh',
-      flexDirection: 'column',
-      gap: '1rem'
-    }}>
-      <p>Redirecting to login...</p>
-    </div>
-  );
+  return null;
 }

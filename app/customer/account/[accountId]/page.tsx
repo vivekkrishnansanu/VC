@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Building } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { LocationItem } from '@/components/accounts/LocationItem';
 import { AccountWarningsService } from '@/lib/services/account-warnings.service';
 import { ProgressService } from '@/lib/services/progress.service';
+import { PortalShell } from '@/components/layouts/PortalShell';
+import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 
 export default function CustomerAccountDetailPage() {
@@ -67,15 +71,9 @@ export default function CustomerAccountDetailPage() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-background overflow-hidden">
-        <div className="flex h-full w-full gap-6 px-4 py-4 sm:px-6 sm:py-6">
-          <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto overscroll-contain">
-              <p className="text-center text-sm text-muted-foreground">Loading...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PortalShell title="Loading..." description="" nav={[]}>
+        <p className="text-center text-sm text-muted-foreground">Loading account details...</p>
+      </PortalShell>
     );
   }
 
@@ -84,97 +82,124 @@ export default function CustomerAccountDetailPage() {
   }
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
-      <div className="flex h-full w-full gap-6 px-4 py-4 sm:px-6 sm:py-6">
-        <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            {/* Header */}
-            <div className="mb-6">
-              <Link href="/customer/dashboard">
-                <Button variant="ghost" size="sm" className="mb-4 -ml-2">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Accounts
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1">
-                {account.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {progress.total} location{progress.total !== 1 ? 's' : ''} • {progress.completed} completed ({progress.percentage}%)
-              </p>
-            </div>
-
-            {/* Account Summary */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Account Summary</CardTitle>
-                <CardDescription>Overall progress and status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{progress.percentage}%</span>
-                    </div>
-                    <div className="flex-1 bg-secondary rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full transition-all"
-                        style={{ width: `${progress.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {(warnings.blockers.pendingApprovals > 0 || warnings.blockers.unsupportedPhones > 0 ||
-                    warnings.warnings.missingDevices > 0 || warnings.warnings.incompleteCallFlow > 0) && (
-                    <div className="pt-4 border-t space-y-2">
-                      <p className="text-sm font-medium">Issues:</p>
-                      {warnings.blockers.pendingApprovals > 0 && (
-                        <p className="text-sm text-destructive">
-                          🔴 {warnings.blockers.pendingApprovals} pending approval{warnings.blockers.pendingApprovals > 1 ? 's' : ''}
-                        </p>
-                      )}
-                      {warnings.blockers.unsupportedPhones > 0 && (
-                        <p className="text-sm text-destructive">
-                          🔴 {warnings.blockers.unsupportedPhones} location{warnings.blockers.unsupportedPhones > 1 ? 's' : ''} with unsupported phones
-                        </p>
-                      )}
-                      {warnings.warnings.missingDevices > 0 && (
-                        <p className="text-sm text-amber-600 dark:text-amber-400">
-                          ⚠️ {warnings.warnings.missingDevices} location{warnings.warnings.missingDevices > 1 ? 's' : ''} missing devices
-                        </p>
-                      )}
-                      {warnings.warnings.incompleteCallFlow > 0 && (
-                        <p className="text-sm text-amber-600 dark:text-amber-400">
-                          ⚠️ {warnings.warnings.incompleteCallFlow} location{warnings.warnings.incompleteCallFlow > 1 ? 's' : ''} with incomplete call flow
-                        </p>
-                      )}
-                    </div>
-                  )}
+    <PortalShell
+      title={account.name}
+      description={`${progress.total} location${progress.total !== 1 ? 's' : ''} • ${progress.completed} completed (${progress.percentage}%)`}
+      nav={[
+        { title: 'Dashboard', href: '/customer/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+        { title: 'Account', href: `/customer/account/${accountId}`, icon: <Building className="h-4 w-4" /> },
+      ]}
+      actions={
+        <Link href="/customer/dashboard">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-8">
+        {/* Overall Progress - Clear and Prominent */}
+        <Card className="rounded-3xl border border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-lg">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold text-slate-900 mb-1">Overall Progress</CardTitle>
+                <CardDescription className="text-sm text-slate-600">
+                  {progress.completed} of {progress.total} locations fully completed
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {progress.percentage}%
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Locations */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Locations</h2>
-              {locations.map((location) => (
-                <LocationItem
-                  key={location.id}
-                  location={location}
-                  progress={location.progress}
-                  warnings={location.warnings}
-                  onClick={() => {
-                    router.push(`/customer/onboarding/${location.id}`);
-                  }}
-                />
-              ))}
+                <div className="text-xs text-slate-500 font-medium mt-1">
+                  {progress.completed}/{progress.total} complete
+                </div>
+              </div>
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Progress Bar */}
+              <div className="relative w-full bg-slate-200/60 rounded-full h-4 overflow-hidden shadow-inner">
+                <div 
+                  className={cn(
+                    "h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden",
+                    progress.percentage === 100
+                      ? "bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 shadow-lg shadow-emerald-500/30"
+                      : "bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 shadow-lg shadow-blue-500/30"
+                  )}
+                  style={{ width: `${progress.percentage}%` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                </div>
+              </div>
 
-            <div className="h-20" />
-          </div>
-        </div>
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200/60">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-slate-900">{progress.completed}</div>
+                  <div className="text-xs text-slate-600 font-medium mt-1">Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{progress.total - progress.completed}</div>
+                  <div className="text-xs text-slate-600 font-medium mt-1">In Progress</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-slate-900">{progress.total}</div>
+                  <div className="text-xs text-slate-600 font-medium mt-1">Total Locations</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Locations */}
+        <Card className="rounded-3xl border border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-lg">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold text-slate-900 mb-1">Locations</CardTitle>
+                <CardDescription className="text-sm text-slate-600">
+                  Click on any location to continue setup
+                </CardDescription>
+              </div>
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-sm font-bold px-3 py-1">
+                {locations.length}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {locations.map((location, idx) => (
+                <div
+                  key={location.id}
+                  className="animate-in fade-in slide-in-from-bottom-4"
+                  style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'both' }}
+                >
+                  <LocationItem
+                    location={location}
+                    progress={location.progress}
+                    warnings={location.warnings}
+                    onClick={() => {
+                      router.push(`/customer/onboarding/${location.id}`);
+                    }}
+                  />
+                </div>
+              ))}
+              {locations.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <Building className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-600">No locations found</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </PortalShell>
   );
 }

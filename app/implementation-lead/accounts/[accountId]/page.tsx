@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Building } from 'lucide-react';
 import { LocationItem } from '@/components/accounts/LocationItem';
 import { AccountWarningsService } from '@/lib/services/account-warnings.service';
 import { ProgressService } from '@/lib/services/progress.service';
@@ -83,8 +83,8 @@ export default function ImplementationLeadAccountDetailPage() {
       title={account.name}
       description={`${progress.total} location${progress.total !== 1 ? 's' : ''} • ${progress.completed} completed`}
       nav={[
-        { title: "Dashboard", href: "/implementation-lead/dashboard", icon: null },
-        { title: "Accounts", href: "/implementation-lead/dashboard", icon: null },
+        { title: "Dashboard", href: "/implementation-lead/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+        { title: "Accounts", href: "/implementation-lead/dashboard", icon: <Building className="h-4 w-4" /> },
       ]}
       actions={
         <Link href="/implementation-lead/dashboard">
@@ -97,7 +97,7 @@ export default function ImplementationLeadAccountDetailPage() {
     >
       <div className="space-y-6">
         {/* Account Summary */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Account Summary</CardTitle>
             <CardDescription>Overall progress and status</CardDescription>
@@ -148,7 +148,7 @@ export default function ImplementationLeadAccountDetailPage() {
         </Card>
 
         {/* Locations */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Locations</CardTitle>
             <CardDescription>All locations under this account</CardDescription>

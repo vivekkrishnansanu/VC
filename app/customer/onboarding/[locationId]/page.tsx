@@ -1,24 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { mockDataService } from '@/lib/mock-data/service';
+import { PortalShell } from '@/components/layouts/PortalShell';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, LayoutDashboard, FileText } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CustomerOnboardingPage() {
   const params = useParams();
+  const router = useRouter();
   const locationId = params.locationId as string;
   const [session, setSession] = useState<any>(null);
+  const [location, setLocation] = useState<any>(null);
 
   useEffect(() => {
+    const loc = mockDataService.locations.getById(locationId);
+    setLocation(loc);
+
     // Fetch session from API
     fetch(`/api/onboarding/session?locationId=${locationId}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => setSession(data))
-      .catch(() => {
+      .catch((error) => {
+        console.warn('Failed to fetch session from API, using fallback:', error);
         // Fallback to mock data
-        const location = mockDataService.locations.getById(locationId);
-        if (location) {
+        if (loc) {
           setSession({
             id: `session-${locationId}`,
             locationId,
@@ -31,28 +45,47 @@ export default function CustomerOnboardingPage() {
       });
   }, [locationId]);
 
-  if (!session) {
+  if (!session || !location) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
+      <PortalShell title="Loading..." description="" nav={[]}>
+        <p className="text-center text-sm text-muted-foreground">
+          {!location ? 'Location not found' : 'Loading onboarding session...'}
+        </p>
+      </PortalShell>
     );
   }
 
-  const location = mockDataService.locations.getById(locationId);
-  if (!location) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Location not found</p>
-      </div>
-    );
-  }
+  // Get account ID for back navigation
+  const accountId = location.accountId;
+  const account = mockDataService.accounts.getById(accountId);
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
-      <div className="flex h-full w-full gap-3 px-4 py-4 sm:gap-4 sm:px-4 sm:py-4 md:gap-6 md:px-4 md:py-4">
-        <OnboardingWizard locationId={locationId} initialSession={session} locationName={location.name} />
-      </div>
-    </div>
+    <PortalShell
+      title={`Onboarding: ${location.name}`}
+      description={account ? `Account: ${account.name}` : 'Complete the onboarding process'}
+      nav={[
+        { title: 'Dashboard', href: '/customer/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+        { title: 'Onboarding', href: `/customer/onboarding/${locationId}`, icon: <FileText className="h-4 w-4" /> },
+      ]}
+      actions={
+        account ? (
+          <Link href={`/customer/account/${accountId}`}>
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Account
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/customer/dashboard">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+        )
+      }
+    >
+      <OnboardingWizard locationId={locationId} initialSession={session} locationName={location.name} />
+    </PortalShell>
   );
 }
