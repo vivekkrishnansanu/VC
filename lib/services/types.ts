@@ -11,6 +11,8 @@ export enum OnboardingStep {
   DEVICES = 'DEVICES',
   WORKING_HOURS = 'WORKING_HOURS',
   CALL_FLOW = 'CALL_FLOW',
+  CALL_QUEUE = 'CALL_QUEUE',
+  USERS = 'USERS',
   REVIEW = 'REVIEW',
 }
 

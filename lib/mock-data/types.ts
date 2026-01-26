@@ -30,6 +30,8 @@ export enum OnboardingStep {
   DEVICES = 'DEVICES',
   WORKING_HOURS = 'WORKING_HOURS',
   CALL_FLOW = 'CALL_FLOW',
+  CALL_QUEUE = 'CALL_QUEUE',
+  USERS = 'USERS',
   REVIEW = 'REVIEW',
 }
 
@@ -246,10 +248,14 @@ export interface Phone {
   ownership: PhoneOwnership;
   assignmentType: PhoneAssignmentType;
   assignedUserId?: string;
+  userFirstName?: string; // User info when assigned to user
+  userLastName?: string;
+  userEmail?: string;
   macAddress?: string;
   serialNumber?: string;
   extension?: string;
   isUnsupported: boolean;
+  enableUserDetection?: boolean; // Device-level feature to identify user with name (only for extension assignment)
   
   // NEW: Device Type & Warnings
   deviceTypes?: DeviceType[]; // Multi-select: DESKPHONE, SOFTPHONE, MOBILE

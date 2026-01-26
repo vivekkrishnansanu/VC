@@ -143,121 +143,65 @@ export default function ImplementationLeadDashboard() {
           </Button>
         </Link>
       }
-      sidebarMetrics={[
-        {
-          label: 'Accounts',
-          value: accounts.length,
-          color: 'primary',
-          trend: { value: `+${accounts.length * 2}%`, direction: 'up' },
-        },
-        {
-          label: 'Locations',
-          value: totalLocations,
-          color: 'success',
-          trend: { value: `+${Math.floor(totalLocations * 1.5)}%`, direction: 'up' },
-        },
-      ]}
-      sidebarProgress={{
-        label: 'Onboarding Progress',
-        value: avgProgress,
-        target: 100,
-        color: 'primary',
-      }}
     >
       <div className="space-y-6">
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Accounts</CardTitle>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary" />
+        {/* Summary Metrics - Professional Design */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-slate-200/60 bg-slate-50/30 hover:bg-slate-50/50 transition-colors">
+            <div className="h-9 w-9 rounded-md bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Building2 className="h-4.5 w-4.5 text-blue-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground mb-1">{accounts.length}</div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="text-green-600 font-medium">+{accounts.length * 2}%</span>
-              <span>↑</span>
-              <span className="ml-1">vs last month</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Accounts</div>
+              <div className="text-2xl font-bold text-slate-900 leading-none">{accounts.length}</div>
             </div>
-            <Badge variant="secondary" className="mt-3 text-[10px] font-semibold">
-              All accounts
-            </Badge>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Locations</CardTitle>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <MapPin className="h-5 w-5 text-primary" />
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-slate-200/60 bg-slate-50/30 hover:bg-slate-50/50 transition-colors">
+            <div className="h-9 w-9 rounded-md bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <MapPin className="h-4.5 w-4.5 text-emerald-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground mb-1">
-              {accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0)}
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Locations</div>
+              <div className="text-2xl font-bold text-slate-900 leading-none">
+                {accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0)}
+              </div>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="text-green-600 font-medium">+{Math.floor(accounts.reduce((sum, acc) => sum + (acc.locations?.length || 0), 0) * 1.5)}%</span>
-              <span>↑</span>
-              <span className="ml-1">vs last month</span>
-            </div>
-            <Badge variant="secondary" className="mt-3 text-[10px] font-semibold">
-              All locations
-            </Badge>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="rounded-2xl border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Pending Approvals</CardTitle>
-            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-              <AlertCircle className="h-5 w-5 text-destructive" />
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-slate-200/60 bg-slate-50/30 hover:bg-slate-50/50 transition-colors">
+            <div className="h-9 w-9 rounded-md bg-red-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <AlertCircle className="h-4.5 w-4.5 text-red-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground mb-1">{pendingApprovals.length}</div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {pendingApprovals.length > 0 ? (
-                <>
-                  <span className="text-amber-600 font-medium">Requires attention</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-green-600 font-medium">All clear</span>
-                  <span>✓</span>
-                </>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Pending Approvals</div>
+              <div className="text-2xl font-bold text-slate-900 leading-none">{pendingApprovals.length}</div>
+              {pendingApprovals.length > 0 && (
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-xs mt-1.5 font-medium text-red-600 hover:text-red-700"
+                  onClick={() => setShowApprovals(true)}
+                >
+                  View all →
+                </Button>
               )}
             </div>
-            {pendingApprovals.length > 0 && (
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-xs mt-3 font-semibold"
-                onClick={() => setShowApprovals(true)}
-              >
-                View all →
-              </Button>
-            )}
-            <Badge variant={pendingApprovals.length > 0 ? "destructive" : "secondary"} className="mt-2 text-[10px] font-semibold">
-              {pendingApprovals.length > 0 ? "Action needed" : "No pending"}
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
 
-      <Card className="rounded-2xl border-border/50 bg-card shadow-md">
+      <Card className="rounded-xl border border-slate-200/60 bg-white shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-bold">Accounts</CardTitle>
-          <CardDescription className="text-sm">All accounts and their onboarding progress.</CardDescription>
+          <CardTitle className="text-lg font-bold text-slate-900">Accounts</CardTitle>
+          <CardDescription className="text-sm text-slate-600">All accounts and their onboarding progress.</CardDescription>
         </CardHeader>
         <CardContent>
           {accounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="text-sm text-slate-500 text-center py-8">
               No accounts found. Create your first account to get started.
             </p>
           ) : (
-            <div className="grid gap-4 grid-cols-1 grid-rows-3">
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
               {accounts.map((account) => (
                 <AccountCard
                   key={account.id}

@@ -7,8 +7,16 @@ export default function Home() {
   const router = useRouter();
   
   useEffect(() => {
-    router.replace('/login');
+    // Only redirect on client side
+    if (typeof window !== 'undefined') {
+      router.replace('/login');
+    }
   }, [router]);
 
-  return null;
+  // Return a loading state instead of null to avoid hydration issues
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  );
 }

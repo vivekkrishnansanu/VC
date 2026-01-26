@@ -21,6 +21,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state from storage
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       const currentUser = getCurrentUser();
       setUser(currentUser);
@@ -51,11 +57,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                    authenticatedUser.email.includes('implementation');
       
       // Use setTimeout to avoid state update during render
-      setTimeout(() => {
+      setTimeout(async () => {
         if (isImplementationLead) {
           router.push("/implementation-lead/dashboard");
         } else {
-          router.push("/customer/dashboard");
+          // For customers, redirect to their first account instead of dashboard
+          try {
+            const { mockDataService } = await import('@/lib/mock-data/service');
+            const customerId = authenticatedUser.id;
+            const customerLocations = mockDataService.locations.getByCustomerId(customerId);
+            
+            // If no locations found, try getting all locations for demo
+            if (customerLocations.length === 0) {
+              customerLocations.push(...mockDataService.locations.getAll().slice(0, 3));
+            }
+            
+            // Get unique account IDs
+            const accountIds = [...new Set(customerLocations.map(loc => loc.accountId))];
+            
+            if (accountIds.length > 0) {
+              // Redirect to first account's detail page
+              router.push(`/customer/account/${accountIds[0]}`);
+            } else {
+              // No accounts found, fallback to dashboard
+              router.push("/customer/dashboard");
+            }
+          } catch (error) {
+            console.error('Error redirecting customer:', error);
+            // Fallback to dashboard on error
+            router.push("/customer/dashboard");
+          }
         }
       }, 0);
     } catch (error) {

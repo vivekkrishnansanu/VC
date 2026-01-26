@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { mockDataService } from '@/lib/mock-data/service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, LayoutDashboard, Building } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Building, AlertTriangle } from 'lucide-react';
 import { LocationItem } from '@/components/accounts/LocationItem';
 import { AccountWarningsService } from '@/lib/services/account-warnings.service';
 import { ProgressService } from '@/lib/services/progress.service';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { PortalShell } from '@/components/layouts/PortalShell';
 
@@ -132,14 +133,24 @@ export default function ImplementationLeadAccountDetailPage() {
                     </p>
                   )}
                   {warnings.warnings.missingDevices > 0 && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400">
-                      ⚠️ {warnings.warnings.missingDevices} location{warnings.warnings.missingDevices > 1 ? 's' : ''} missing devices
-                    </p>
+                    <Alert variant="warning" className="py-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="text-sm font-medium">
+                          {warnings.warnings.missingDevices} location{warnings.warnings.missingDevices > 1 ? 's' : ''} missing devices
+                        </p>
+                      </AlertDescription>
+                    </Alert>
                   )}
                   {warnings.warnings.incompleteCallFlow > 0 && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400">
-                      ⚠️ {warnings.warnings.incompleteCallFlow} location{warnings.warnings.incompleteCallFlow > 1 ? 's' : ''} with incomplete call flow
-                    </p>
+                    <Alert variant="warning" className="py-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="text-sm font-medium">
+                          {warnings.warnings.incompleteCallFlow} location{warnings.warnings.incompleteCallFlow > 1 ? 's' : ''} with incomplete call flow
+                        </p>
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </div>
               )}

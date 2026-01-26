@@ -9,8 +9,10 @@ import { PhoneSystemStep } from './steps/PhoneSystemStep';
 import { DevicesStep } from './steps/DevicesStep';
 import { WorkingHoursStep } from './steps/WorkingHoursStep';
 import { CallFlowStep } from './steps/CallFlowStep';
+import { CallQueueStep } from './steps/CallQueueStep';
+import { UsersStep } from './steps/UsersStep';
 import { ReviewStep } from './steps/ReviewStep';
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Loader2, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,8 @@ const steps: { key: OnboardingStep; label: string }[] = [
   { key: OnboardingStep.DEVICES, label: 'Devices' },
   { key: OnboardingStep.WORKING_HOURS, label: 'Working Hours' },
   { key: OnboardingStep.CALL_FLOW, label: 'Call Flow' },
+  { key: OnboardingStep.CALL_QUEUE, label: 'Call Queue' },
+  { key: OnboardingStep.USERS, label: 'Users' },
   { key: OnboardingStep.REVIEW, label: 'Review' },
 ];
 
@@ -104,14 +108,14 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
     const checkStepIssues = async () => {
       const issues: Record<OnboardingStep, { warnings: number; errors: number }> = {} as any;
 
-      // Check Devices step for unsupported phones
+      // Check Devices step for unsupported phones (these are errors as they block submission)
       try {
         const phones = mockDataService.phones.getByLocationId(locationId);
         const unsupportedPhones = phones.filter(p => p.isUnsupported);
         if (unsupportedPhones.length > 0) {
           issues[OnboardingStep.DEVICES] = {
-            warnings: unsupportedPhones.length,
-            errors: 0,
+            warnings: 0,
+            errors: unsupportedPhones.length,
           };
         }
       } catch (error) {
@@ -242,10 +246,10 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
   };
 
   const handleStepClick = (index: number) => {
-    // Allow navigation to completed steps or next step
-    if (index <= currentStepIndex || completedSteps.includes(steps[index].key)) {
-      setCurrentStepIndex(index);
-    }
+    // Allow navigation to any step
+    setCurrentStepIndex(index);
+    // Update session via API
+    updateSessionStep(steps[index].key);
   };
 
   const updateSessionStep = async (step: OnboardingStep) => {
@@ -307,6 +311,22 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
             skipRules={skipRules}
           />
         );
+      case OnboardingStep.CALL_QUEUE:
+        return (
+          <CallQueueStep
+            locationId={locationId}
+            onComplete={handleNext}
+            skipRules={skipRules}
+          />
+        );
+      case OnboardingStep.USERS:
+        return (
+          <UsersStep
+            locationId={locationId}
+            onComplete={handleNext}
+            skipRules={skipRules}
+          />
+        );
       case OnboardingStep.REVIEW:
         return (
           <ReviewStep
@@ -325,15 +345,15 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       {/* Progress Card */}
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <div className="space-y-4">
+      <div className="rounded-xl border border-slate-200/60 bg-white shadow-sm p-5 lg:rounded-2xl lg:p-6">
+        <div className="space-y-3 lg:space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide lg:text-sm">
               Progress
             </span>
-            <span className="text-lg font-semibold text-foreground">
+            <span className="text-base font-semibold text-slate-900 lg:text-lg">
               {Math.round(progress)}%
             </span>
           </div>
@@ -341,29 +361,35 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
         </div>
 
         {/* Step List - Grid Layout */}
-        <nav className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <nav className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:mt-6 lg:grid-cols-8 lg:gap-3">
           {steps.map((step, index) => {
             const isCompleted = completedSteps.includes(step.key);
             const isCurrent = index === currentStepIndex;
-            const isAccessible = index <= currentStepIndex || isCompleted;
             const stepNumber = index + 1;
             const issues = stepIssues[step.key];
-            const hasIssues = issues && (issues.warnings > 0 || issues.errors > 0);
+            const hasErrors = issues && issues.errors > 0;
+            const hasWarnings = issues && issues.warnings > 0;
+            const hasIssues = hasErrors || hasWarnings;
+            
+            // Determine icon to show:
+            // - Green checkmark if completed and no errors
+            // - Red cross if has errors (regardless of completion)
+            // - Step number if not completed and no errors
+            const showGreenCheck = isCompleted && !hasErrors;
+            const showRedCross = hasErrors;
+            const showStepNumber = !isCompleted && !hasErrors;
 
             return (
               <button
                 key={step.key}
                 onClick={() => handleStepClick(index)}
-                disabled={!isAccessible}
                 className={cn(
-                  "flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-colors",
+                  "flex flex-col items-center gap-1.5 p-2.5 rounded-lg text-center transition-all duration-200 cursor-pointer border lg:gap-2 lg:p-3 lg:rounded-xl",
                   isCurrent
-                    ? "bg-muted text-foreground border-2 border-primary"
+                    ? "bg-blue-50 text-blue-900 border-2 border-blue-500 shadow-sm"
                     : isCompleted
-                    ? "hover:bg-muted/50 text-foreground border border-border"
-                    : isAccessible
-                    ? "hover:bg-muted/50 text-muted-foreground border border-border"
-                    : "opacity-50 cursor-not-allowed text-muted-foreground border border-border"
+                    ? "hover:bg-slate-50 text-slate-900 border border-slate-200/60 hover:border-slate-300"
+                    : "hover:bg-slate-50 text-slate-500 border border-slate-200/60 hover:border-slate-300"
                 )}
               >
                 <div
@@ -371,24 +397,28 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                     "flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold transition-colors",
                     isCurrent
                       ? "bg-primary text-primary-foreground"
-                      : isCompleted
-                      ? "bg-primary/10 text-primary"
+                      : showRedCross
+                      ? "bg-destructive/10 text-destructive"
+                      : showGreenCheck
+                      ? "bg-emerald-50 text-emerald-600"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {isCompleted ? (
+                  {showRedCross ? (
+                    <XCircle className="h-4 w-4" />
+                  ) : showGreenCheck ? (
                     <CheckCircle2 className="h-4 w-4" />
                   ) : (
                     stepNumber
                   )}
                 </div>
                 <span className="text-xs font-medium leading-tight">{step.label}</span>
-                {hasIssues && (
+                {hasWarnings && !hasErrors && (
                   <Badge 
-                    variant={issues.errors > 0 ? "destructive" : "secondary"}
+                    variant="secondary"
                     className="h-4 min-w-[1.25rem] px-1 text-[10px] font-semibold"
                   >
-                    {issues.errors > 0 ? issues.errors : issues.warnings}
+                    {issues.warnings}
                   </Badge>
                 )}
               </button>
@@ -398,14 +428,14 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
       </div>
 
       {/* Step Content Card */}
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <div className="mb-6">
+      <div className="rounded-xl border border-slate-200/60 bg-white shadow-sm p-5 lg:rounded-2xl lg:p-6">
+        <div className="mb-5 lg:mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900 lg:text-lg">
               Step {currentStepIndex + 1} of {steps.length}: {currentStep.label}
             </h2>
           </div>
-          <Separator />
+          <Separator className="bg-slate-200/60" />
         </div>
 
         {/* Step Content */}
@@ -425,7 +455,11 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
               <ArrowLeft className="h-4 w-4 mr-2" />
               Previous Step
             </Button>
-            <Button onClick={handleNext} size="default">
+            <Button 
+              onClick={handleNext} 
+              size="default"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-6 py-2.5 shadow-sm"
+            >
               Continue to Next Step
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
@@ -437,6 +471,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                 <Button 
                   disabled={!canSubmit || isSubmitting} 
                   size="default"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-6 py-2.5 shadow-sm"
                   title={!canSubmit ? 'Cannot submit: Please resolve all blockers first' : undefined}
                 >
                   {isSubmitting ? (
@@ -460,7 +495,7 @@ export function OnboardingWizard({ locationId, initialSession, locationName }: O
                   <Button variant="outline" size="sm" onClick={() => setShowConfirmDialog(false)} className="w-full sm:w-auto">
                     Cancel Submission
                   </Button>
-                  <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="w-full sm:w-auto">
+                  <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-sm">
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

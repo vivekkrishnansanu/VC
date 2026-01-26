@@ -33,12 +33,11 @@ export function WarningBadge({ type, count, variant, className }: WarningBadgePr
       className={cn(
         'flex items-center gap-1.5 text-xs',
         isBlocker && 'bg-destructive text-destructive-foreground',
-        !isBlocker && 'bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400',
+        !isBlocker && 'bg-[#FFFDEB] text-[#92400E] border-2 border-[#F0C94F]',
         className
       )}
-      style={!isBlocker ? { color: 'rgba(255, 19, 0, 1)', textAlign: 'center', paddingLeft: '6px', paddingRight: '6px' } : undefined}
     >
-      <Icon className="h-3 w-3" />
+      <Icon className={cn('h-3 w-3', !isBlocker && 'text-[#F0C94F]')} />
       <span>{displayText}</span>
     </Badge>
   );

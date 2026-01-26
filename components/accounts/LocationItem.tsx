@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { OnboardingStatus } from '@/lib/mock-data/types';
 import { LocationWarnings } from '@/lib/services/account-warnings.service';
 import { LocationProgress } from '@/lib/services/progress.service';
-import { MapPin, CheckCircle2, Clock, AlertCircle, PlayCircle, ChevronRight, Info } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, AlertCircle, AlertTriangle, PlayCircle, ChevronRight, Info, Phone, FileText } from 'lucide-react';
 import { WarningBadge } from './WarningBadge';
 import { cn } from '@/lib/utils';
 
@@ -157,20 +157,20 @@ export function LocationItem({ location, progress, warnings, onClick, className 
 
               {/* Warnings Second - Less Critical */}
               {warnings.warnings.missingDevices && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200/50">
-                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-[#FFFDEB] border-2 border-[#F0C94F]">
+                  <AlertTriangle className="h-4 w-4 text-[#F0C94F] shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-amber-700">Missing Devices</div>
-                    <div className="text-[10px] text-amber-600">Review needed</div>
+                    <div className="text-xs font-bold text-[#92400E]">Missing Devices</div>
+                    <div className="text-[10px] text-[#92400E]">Review needed</div>
                   </div>
                 </div>
               )}
               {warnings.warnings.incompleteCallFlow && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200/50">
-                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-[#FFFDEB] border-2 border-[#F0C94F]">
+                  <AlertTriangle className="h-4 w-4 text-[#F0C94F] shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-amber-700">Incomplete Call Flow</div>
-                    <div className="text-[10px] text-amber-600">Configuration needed</div>
+                    <div className="text-xs font-bold text-[#92400E]">Incomplete Call Flow</div>
+                    <div className="text-[10px] text-[#92400E]">Configuration needed</div>
                   </div>
                 </div>
               )}

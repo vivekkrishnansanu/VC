@@ -57,24 +57,25 @@ export function AccountCard({ account, warnings, progress, locations, userRole, 
     <Link href={accountDetailPath} className="block group">
       <Card
         className={cn(
-          'cursor-pointer transition-all duration-500 rounded-3xl',
-          'hover:border-slate-300/60 hover:shadow-xl',
-          'bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-lg',
-          'hover:scale-[1.01] hover:-translate-y-0.5',
+          'cursor-pointer transition-all duration-300 rounded-xl',
+          'hover:border-slate-300/60 hover:shadow-lg',
+          'bg-white border border-slate-200/60 shadow-sm',
+          'hover:scale-[1.005] hover:-translate-y-0.5',
           'relative overflow-hidden',
+          'lg:rounded-2xl',
           className
         )}
       >
-        <CardContent className="p-8 relative z-10">
+        <CardContent className="p-5 relative z-10 lg:p-6">
           {/* Header */}
-          <div className="flex items-start justify-between mb-8">
+          <div className="flex items-start justify-between mb-5">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200/60 group-hover:bg-slate-50 transition-colors duration-200">
-                  <Building2 className="h-6 w-6 text-slate-700 shrink-0" />
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 group-hover:bg-slate-100 transition-colors duration-200 lg:p-3 lg:rounded-2xl">
+                  <Building2 className="h-5 w-5 text-slate-700 shrink-0 lg:h-6 lg:w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-2xl font-bold text-slate-900 truncate mb-1 group-hover:text-slate-700 transition-colors">
+                  <h3 className="text-lg font-bold text-slate-900 truncate mb-1 group-hover:text-slate-700 transition-colors lg:text-xl">
                     {account.name}
                   </h3>
                   <Badge className="bg-gradient-to-r from-slate-100 to-slate-50 text-slate-700 border-slate-200 hover:bg-slate-200 text-xs font-bold px-3 py-1 rounded-full">
@@ -111,8 +112,8 @@ export function AccountCard({ account, warnings, progress, locations, userRole, 
           </div>
 
           {/* Progress Summary */}
-          <div className="mb-8 p-5 rounded-2xl bg-slate-50/50 border border-slate-200/60 hover:border-slate-300/50 transition-colors group/progress">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-5 p-4 rounded-xl bg-slate-50/50 border border-slate-200/60 hover:border-slate-300/50 transition-colors group/progress lg:rounded-2xl lg:p-5">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-slate-700 uppercase tracking-wide">Progress</span>
                 <div className="relative group/tooltip">
@@ -126,17 +127,17 @@ export function AccountCard({ account, warnings, progress, locations, userRole, 
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-slate-900">
+                <span className="text-2xl font-bold text-slate-900 lg:text-3xl">
                   {progress.percentage || 0}%
                 </span>
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                 <span>{progress.completed || 0} of {progress.total || 0} locations completed</span>
                 <span className="text-slate-900 font-bold">{progress.completed || 0}/{progress.total || 0}</span>
               </div>
-              <div className="relative w-full bg-slate-200/60 rounded-full h-3 overflow-hidden shadow-inner">
+              <div className="relative w-full bg-slate-200/60 rounded-full h-2.5 overflow-hidden shadow-inner lg:h-3">
                 <div 
                   className={cn(
                     "h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden",

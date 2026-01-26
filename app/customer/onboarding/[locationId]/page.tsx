@@ -67,23 +67,6 @@ export default function CustomerOnboardingPage() {
         { title: 'Dashboard', href: '/customer/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
         { title: 'Onboarding', href: `/customer/onboarding/${locationId}`, icon: <FileText className="h-4 w-4" /> },
       ]}
-      actions={
-        account ? (
-          <Link href={`/customer/account/${accountId}`}>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Account
-            </Button>
-          </Link>
-        ) : (
-          <Link href="/customer/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-        )
-      }
     >
       <OnboardingWizard locationId={locationId} initialSession={session} locationName={location.name} />
     </PortalShell>

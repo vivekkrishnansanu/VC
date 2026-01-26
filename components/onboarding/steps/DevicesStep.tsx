@@ -48,6 +48,7 @@ interface Device {
   serialNumber?: string;
   extension?: string;
   isUnsupported: boolean;
+  enableUserDetection?: boolean;
   hasWarnings?: boolean;
   warningReason?: string;
 }
@@ -117,6 +118,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
         serialNumber: phone.serialNumber || '',
         extension: phone.extension || '',
         isUnsupported: phone.isUnsupported,
+        enableUserDetection: phone.enableUserDetection || false,
         hasWarnings: phone.hasWarnings,
         warningReason: phone.warningReason,
       })));
@@ -203,6 +205,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
       serialNumber: deviceData.serialNumber || '',
       extension: deviceData.extension || '',
       isUnsupported: !isSupported,
+      enableUserDetection: deviceData.enableUserDetection || false,
       hasWarnings: false,
       warningReason: undefined,
     };
@@ -391,7 +394,7 @@ export function DevicesStep({ locationId, onComplete, skipRules }: DevicesStepPr
 
       {/* Warning if devices not owned */}
       {deviceOwnership === DeviceOwnership.NOT_OWNED && (
-        <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+        <Alert variant="warning">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           <AlertDescription className="text-sm font-medium text-amber-900 dark:text-amber-100">
             Devices will be provided or purchased. You will not be able to add device details manually.
@@ -484,7 +487,7 @@ function DeviceCard({ device, onEdit, onRemove, disabled }: DeviceCardProps) {
       'bg-gradient-to-br from-card to-card/50 backdrop-blur-sm',
       'border-border/60 hover:border-primary/30 hover:shadow-lg',
       device.isUnsupported && 'border-red-500/50 bg-red-50/50 dark:bg-red-900/10',
-      device.hasWarnings && 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10',
+      device.hasWarnings && 'border-[#F0C94F] bg-[#FFFDEB]',
       disabled && 'opacity-60 cursor-not-allowed'
     )}>
       <CardHeader className="pb-4">
@@ -498,17 +501,18 @@ function DeviceCard({ device, onEdit, onRemove, disabled }: DeviceCardProps) {
                 </Badge>
               )}
               {device.hasWarnings && !device.isUnsupported && (
-                <Badge className="text-xs font-semibold shrink-0 bg-amber-500 text-white border-0">
+                <Badge className="text-xs font-semibold shrink-0 bg-[#FFFDEB] text-[#92400E] border-2 border-[#F0C94F]">
                   Warning
                 </Badge>
               )}
             </CardTitle>
             {device.warningReason && (
-              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                  {device.warningReason}
-                </p>
-              </div>
+              <Alert variant="warning" className="mt-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="text-xs font-medium">{device.warningReason}</p>
+                </AlertDescription>
+              </Alert>
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -568,6 +572,12 @@ function DeviceCard({ device, onEdit, onRemove, disabled }: DeviceCardProps) {
               <p className="text-sm font-medium text-foreground">{device.extension}</p>
             </div>
           )}
+          {device.enableUserDetection && (
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">User Detection</Label>
+              <p className="text-sm font-medium text-foreground">Enabled</p>
+            </div>
+          )}
           {device.macAddress && (
             <div className="p-3 rounded-lg bg-muted/50">
               <Label className="text-xs font-semibold text-muted-foreground mb-1 block">MAC Address</Label>
@@ -609,6 +619,7 @@ function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: D
   const [userLastName, setUserLastName] = useState<string>(device?.userLastName || '');
   const [userEmail, setUserEmail] = useState<string>(device?.userEmail || '');
   const [extension, setExtension] = useState<string>(device?.extension || '');
+  const [enableUserDetection, setEnableUserDetection] = useState<boolean>(device?.enableUserDetection || false);
   const [macAddress, setMacAddress] = useState<string>(device?.macAddress || '');
   const [serialNumber, setSerialNumber] = useState<string>(device?.serialNumber || '');
 
@@ -626,6 +637,7 @@ function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: D
       setUserLastName(device.userLastName || '');
       setUserEmail(device.userEmail || '');
       setExtension(device.extension || '');
+      setEnableUserDetection(device.enableUserDetection || false);
       setMacAddress(device.macAddress || '');
       setSerialNumber(device.serialNumber || '');
     } else {
@@ -639,6 +651,7 @@ function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: D
       setUserLastName('');
       setUserEmail('');
       setExtension('');
+      setEnableUserDetection(false);
       setMacAddress('');
       setSerialNumber('');
     }
@@ -658,6 +671,7 @@ function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: D
       userLastName: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? userLastName : undefined,
       userEmail: assignmentType === PhoneAssignmentType.ASSIGNED_TO_USER ? userEmail : undefined,
       extension: assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION ? extension : undefined,
+      enableUserDetection: assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION ? enableUserDetection : undefined,
       macAddress,
       serialNumber,
     });
@@ -808,18 +822,41 @@ function DeviceDialog({ open, onOpenChange, device, supportedModels, onSave }: D
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Extension</Label>
+                <Input
+                  value={extension}
+                  onChange={(e) => setExtension(e.target.value)}
+                  placeholder="1001"
+                />
+              </div>
             </div>
           )}
 
           {/* Extension (if assigned to extension) */}
           {isSupportedBrand && assignmentType === PhoneAssignmentType.ASSIGNED_TO_EXTENSION && (
-            <div className="space-y-2">
-              <Label>Extension *</Label>
-              <Input
-                value={extension}
-                onChange={(e) => setExtension(e.target.value)}
-                placeholder="1001"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Extension *</Label>
+                <Input
+                  value={extension}
+                  onChange={(e) => setExtension(e.target.value)}
+                  placeholder="1001"
+                />
+              </div>
+              {/* Enable User Detection - only show when extension is provided */}
+              {extension && extension.trim() !== '' && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enable-user-detection"
+                    checked={enableUserDetection}
+                    onCheckedChange={(checked) => setEnableUserDetection(checked === true)}
+                  />
+                  <Label htmlFor="enable-user-detection" className="font-normal text-sm cursor-pointer">
+                    Enable user detection
+                  </Label>
+                </div>
+              )}
             </div>
           )}
 

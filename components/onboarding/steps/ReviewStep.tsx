@@ -149,8 +149,8 @@ export function ReviewStep({ locationId, onComplete, skipRules, onSubmit, canSub
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-1.5">
-              <p className="font-semibold text-amber-950 dark:text-amber-50">Warnings:</p>
-              <ul className="list-disc list-inside space-y-1 text-amber-950 dark:text-amber-50">
+              <p className="font-semibold">Warnings:</p>
+              <ul className="list-disc list-inside space-y-1">
                 {validation.warnings.map((warning: string, index: number) => (
                   <li key={index} className="font-medium">{warning}</li>
                 ))}

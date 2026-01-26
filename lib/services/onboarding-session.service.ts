@@ -53,6 +53,18 @@ export class OnboardingSessionService {
           currentStep = OnboardingStep.WORKING_HOURS;
         }
       }
+      if ((onboarding as any)?.workingHours && Array.isArray((onboarding as any).workingHours) && (onboarding as any).workingHours.length > 0) {
+        completedSteps.push(OnboardingStep.WORKING_HOURS);
+        currentStep = OnboardingStep.CALL_FLOW;
+      }
+      if (onboarding.hasIVR !== undefined || (onboarding as any)?.directRingUsers || (onboarding as any)?.directRingExtensions) {
+        completedSteps.push(OnboardingStep.CALL_FLOW);
+        currentStep = OnboardingStep.CALL_QUEUE;
+      }
+      if ((onboarding as any)?.callQueue) {
+        completedSteps.push(OnboardingStep.CALL_QUEUE);
+        currentStep = OnboardingStep.USERS;
+      }
       // Add more step checks as needed
     }
 
@@ -140,6 +152,8 @@ export class OnboardingSessionService {
       OnboardingStep.DEVICES,
       OnboardingStep.WORKING_HOURS,
       OnboardingStep.CALL_FLOW,
+      OnboardingStep.CALL_QUEUE,
+      OnboardingStep.USERS,
       OnboardingStep.REVIEW,
     ];
 
@@ -161,6 +175,8 @@ export class OnboardingSessionService {
       OnboardingStep.DEVICES,
       OnboardingStep.WORKING_HOURS,
       OnboardingStep.CALL_FLOW,
+      OnboardingStep.CALL_QUEUE,
+      OnboardingStep.USERS,
       OnboardingStep.REVIEW,
     ];
 
@@ -216,6 +232,8 @@ export class OnboardingSessionService {
       OnboardingStep.DEVICES,
       OnboardingStep.WORKING_HOURS,
       OnboardingStep.CALL_FLOW,
+      OnboardingStep.CALL_QUEUE,
+      OnboardingStep.USERS,
     ];
 
     const missingSteps = requiredSteps.filter(

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +39,11 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
   const [ivrOptions, setIvrOptions] = useState<IVROption[]>([]);
   const [voicemailScript, setVoicemailScript] = useState('');
   const [sharedVoicemailUsers, setSharedVoicemailUsers] = useState<string[]>([]);
+  const [newlyAddedOptionId, setNewlyAddedOptionId] = useState<string | null>(null);
+  const optionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string; email: string; extension?: string }>>([]);
+  const [availableExtensions, setAvailableExtensions] = useState<string[]>([]);
+  const [extensionsWithoutUsers, setExtensionsWithoutUsers] = useState<string[]>([]);
 
   const shouldSkipIVR = skipRules.some(rule => rule.field === 'ivrOptions' && rule.shouldSkip);
 
@@ -77,20 +82,81 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         }
       }
     }
+
+    // Load available users with their extensions
+    const users = mockDataService.users.getAll();
+    const phones = mockDataService.phones.getByLocationId(locationId);
+    
+    // Create a map of userId to extension
+    const userExtensionMap = new Map<string, string>();
+    phones.forEach(phone => {
+      if (phone.assignedUserId && phone.extension) {
+        userExtensionMap.set(phone.assignedUserId, phone.extension);
+      }
+    });
+    
+    setAvailableUsers(users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      extension: userExtensionMap.get(user.id),
+    })));
+
+    // Load all available extensions from phones for this location
+    const allExtensions = phones
+      .map(phone => phone.extension)
+      .filter((ext): ext is string => ext !== undefined && ext !== null)
+      .filter((ext, index, self) => self.indexOf(ext) === index) // Remove duplicates
+      .sort();
+    setAvailableExtensions(allExtensions);
+    
+    // Find extensions that are not assigned to any user
+    const extensionsWithUsers = new Set(Array.from(userExtensionMap.values()));
+    const extensionsOnly = allExtensions.filter(ext => !extensionsWithUsers.has(ext));
+    setExtensionsWithoutUsers(extensionsOnly);
   }, [locationId]);
+
+  // Scroll to newly added option
+  useEffect(() => {
+    if (newlyAddedOptionId && optionRefs.current[newlyAddedOptionId]) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        optionRefs.current[newlyAddedOptionId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        setNewlyAddedOptionId(null);
+      }, 100);
+    }
+  }, [newlyAddedOptionId, ivrOptions]);
+
+  const getTargetDisplayValue = (target: { userId?: string; extension?: string }) => {
+    if (target.userId) {
+      const user = availableUsers.find(u => u.id === target.userId);
+      if (user) {
+        return `${user.name} (${user.email})${user.extension ? ` - ${user.extension}` : ''}`;
+      }
+    }
+    if (target.extension) {
+      return target.extension;
+    }
+    return '';
+  };
 
   const addIVROption = () => {
     const optionNumber = String(ivrOptions.length + 1);
+    const newOptionId = `ivr-${Date.now()}`;
     setIvrOptions([
       ...ivrOptions,
       {
-        id: `ivr-${Date.now()}`,
+        id: newOptionId,
         optionNumber,
         label: '',
         ringType: 'users',
         targets: [],
       },
     ]);
+    setNewlyAddedOptionId(newOptionId);
   };
 
   const removeIVROption = (id: string) => {
@@ -165,17 +231,17 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-8 overflow-visible">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-6 overflow-visible lg:space-y-8">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Call Flow Configuration</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <h3 className="text-sm font-semibold text-slate-900 lg:text-base">Call Flow Configuration</h3>
+        <p className="text-xs text-slate-600 leading-relaxed lg:text-sm">
           Configure how calls are routed and handled
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-5 lg:space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="greetingMessage" className="text-sm font-medium">Greeting Message</Label>
+          <Label htmlFor="greetingMessage" className="text-xs font-semibold text-slate-700 lg:text-sm">Greeting Message</Label>
           <Textarea
             id="greetingMessage"
             value={greetingMessage}
@@ -216,8 +282,8 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
           <div className="space-y-6">
             {/* IVR Script at Top */}
             <div className="space-y-2">
-              <Label htmlFor="ivrScript" className="text-sm font-medium">
-                IVR Script <span className="text-destructive">*</span>
+              <Label htmlFor="ivrScript" className="text-xs font-semibold text-slate-700 lg:text-sm">
+                IVR Script <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="ivrScript"
@@ -236,65 +302,20 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
               </Button>
             </div>
 
-            {/* Global IVR Settings (shown when IVR is enabled; outside options) */}
-            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-border/60">
-              <CardContent className="p-6 space-y-5">
-                <h4 className="text-base font-bold text-foreground">Global IVR Settings</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Retry Attempts</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={ivrRetryAttempts}
-                      onChange={(e) => setIvrRetryAttempts(parseInt(e.target.value) || 0)}
-                      className="bg-background"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Wait Time (seconds)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={ivrWaitTime}
-                      onChange={(e) => setIvrWaitTime(parseInt(e.target.value) || 0)}
-                      className="bg-background"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Invalid Selection Script</Label>
-                  <Textarea
-                    value={ivrInvalidSelectionScript}
-                    onChange={(e) => setIvrInvalidSelectionScript(e.target.value)}
-                    placeholder="Invalid selection. Please try again..."
-                    rows={2}
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">After Retry Routing</Label>
-                  <Select value={ivrAfterRetriesTarget} onValueChange={setIvrAfterRetriesTarget}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Select routing target" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="voicemail">Go to Voicemail</SelectItem>
-                      <SelectItem value="operator">Operator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* IVR Options List */}
             {ivrOptions.length > 0 && (
               <div className="space-y-4">
                 {ivrOptions.map((option) => (
-                  <Card key={option.id} className="bg-gradient-to-br from-card to-card/50 border-border/60">
-                    <CardContent className="p-5 space-y-4">
+                  <div
+                    key={option.id}
+                    ref={(el) => {
+                      optionRefs.current[option.id] = el;
+                    }}
+                  >
+                    <Card className="bg-gradient-to-br from-white to-slate-50/50 border border-slate-200/60 shadow-sm rounded-xl lg:rounded-2xl">
+                    <CardContent className="p-4 space-y-3 lg:p-5 lg:space-y-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-base font-bold text-foreground">Option {option.optionNumber}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 lg:text-base">Option {option.optionNumber}</h4>
                         <Button
                           type="button"
                           variant="ghost"
@@ -308,21 +329,8 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
 
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-sm font-semibold">
-                            Option Script <span className="text-destructive">*</span>
-                          </Label>
-                          <Textarea
-                            value={option.label || ''}
-                            onChange={(e) => updateIVROption(option.id, 'label', e.target.value)}
-                            placeholder="Press 1 for sales, press 2 for support..."
-                            rows={2}
-                            className="bg-background"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-semibold">
-                            Ring Type <span className="text-destructive">*</span>
+                          <Label className="text-xs font-semibold text-slate-700 lg:text-sm">
+                            Ring Type <span className="text-red-500">*</span>
                           </Label>
                           <Select
                             value={option.ringType}
@@ -341,34 +349,75 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                         </div>
 
                         <div className="space-y-3">
-                          <Label className="text-sm font-semibold">
-                            Routing Targets <span className="text-destructive">*</span>
+                          <Label className="text-xs font-semibold text-slate-700 lg:text-sm">
+                            Routing Targets <span className="text-red-500">*</span>
                           </Label>
                           <div className="space-y-2">
                             {option.targets.map((target, targetIndex) => (
                               <div key={targetIndex} className="flex gap-2">
                                 {option.ringType === 'users' ? (
-                                  <Input
-                                    placeholder="User ID or Email"
-                                    value={target.userId || ''}
-                                    onChange={(e) => {
+                                  <Select
+                                    value={target.userId || target.extension || ''}
+                                    onValueChange={(value) => {
                                       const updated = [...option.targets];
-                                      updated[targetIndex] = { ...target, userId: e.target.value };
+                                      // Check if it's a user ID or extension
+                                      if (availableUsers.some(u => u.id === value)) {
+                                        updated[targetIndex] = { userId: value };
+                                      } else {
+                                        updated[targetIndex] = { extension: value };
+                                      }
                                       updateIVROption(option.id, 'targets', updated);
                                     }}
-                                    className="bg-background"
-                                  />
+                                  >
+                                    <SelectTrigger className="bg-background flex-1">
+                                      <SelectValue placeholder="Select a user or extension">
+                                        {getTargetDisplayValue(target)}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        <SelectLabel>Users</SelectLabel>
+                                        {availableUsers.map((user) => (
+                                          <SelectItem key={user.id} value={user.id}>
+                                            {user.name} ({user.email}){user.extension ? ` - ${user.extension}` : ''}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectGroup>
+                                      {extensionsWithoutUsers.length > 0 && (
+                                        <>
+                                          <SelectSeparator />
+                                          <SelectGroup>
+                                            <SelectLabel>Extensions Only</SelectLabel>
+                                            {extensionsWithoutUsers.map((ext) => (
+                                              <SelectItem key={ext} value={ext}>
+                                                {ext}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectGroup>
+                                        </>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
                                 ) : (
-                                  <Input
-                                    placeholder="Extension"
+                                  <Select
                                     value={target.extension || ''}
-                                    onChange={(e) => {
+                                    onValueChange={(value) => {
                                       const updated = [...option.targets];
-                                      updated[targetIndex] = { ...target, extension: e.target.value };
+                                      updated[targetIndex] = { ...target, extension: value };
                                       updateIVROption(option.id, 'targets', updated);
                                     }}
-                                    className="bg-background"
-                                  />
+                                  >
+                                    <SelectTrigger className="bg-background flex-1">
+                                      <SelectValue placeholder="Select an extension" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableExtensions.map((ext) => (
+                                        <SelectItem key={ext} value={ext}>
+                                          {ext}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 )}
                                 <Button
                                   type="button"
@@ -397,15 +446,67 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
                       </div>
                     </CardContent>
                   </Card>
+                  </div>
                 ))}
               </div>
             )}
+
+            {/* Global IVR Settings (shown when IVR is enabled; outside options) */}
+            <Card className="bg-gradient-to-br from-slate-50/50 to-slate-50/30 border border-slate-200/60 shadow-sm rounded-xl lg:rounded-2xl">
+              <CardContent className="p-5 space-y-4 lg:p-6 lg:space-y-5">
+                <h4 className="text-sm font-bold text-slate-900 lg:text-base">Global IVR Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-slate-700 lg:text-sm">Retry Attempts</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={ivrRetryAttempts}
+                      onChange={(e) => setIvrRetryAttempts(parseInt(e.target.value) || 0)}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-slate-700 lg:text-sm">Wait Time (seconds)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={ivrWaitTime}
+                      onChange={(e) => setIvrWaitTime(parseInt(e.target.value) || 0)}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-700 lg:text-sm">Invalid Selection Script</Label>
+                  <Textarea
+                    value={ivrInvalidSelectionScript}
+                    onChange={(e) => setIvrInvalidSelectionScript(e.target.value)}
+                    placeholder="Invalid selection. Please try again..."
+                    rows={2}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-700 lg:text-sm">After Retry Routing</Label>
+                  <Select value={ivrAfterRetriesTarget} onValueChange={setIvrAfterRetriesTarget}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select routing target" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="voicemail">Go to Voicemail</SelectItem>
+                      <SelectItem value="operator">Operator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div className="space-y-4 overflow-visible">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                Direct Ring Type <span className="text-destructive">*</span>
+              <Label className="text-xs font-semibold text-slate-700 lg:text-sm">
+                Direct Ring Type <span className="text-red-500">*</span>
               </Label>
               <div className="relative z-0">
                 <Select
@@ -424,32 +525,75 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-medium">
-                Targets to Ring <span className="text-destructive">*</span>
+              <Label className="text-xs font-semibold text-slate-700 lg:text-sm">
+                Targets to Ring <span className="text-red-500">*</span>
               </Label>
               <div className="space-y-2">
                 {directTargets.map((target, index) => (
                   <div key={index} className="flex gap-2">
                     {directRingType === 'users' ? (
-                      <Input
-                        placeholder="User ID or Email"
-                        value={target.userId || ''}
-                        onChange={(e) => {
+                      <Select
+                        value={target.userId || target.extension || ''}
+                        onValueChange={(value) => {
                           const updated = [...directTargets];
-                          updated[index] = { ...target, userId: e.target.value };
+                          // Check if it's a user ID or extension
+                          if (availableUsers.some(u => u.id === value)) {
+                            updated[index] = { userId: value };
+                          } else {
+                            updated[index] = { extension: value };
+                          }
                           setDirectTargets(updated);
                         }}
-                      />
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select a user or extension">
+                            {getTargetDisplayValue(target)}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Users</SelectLabel>
+                            {availableUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name} ({user.email}){user.extension ? ` - ${user.extension}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                          {extensionsWithoutUsers.length > 0 && (
+                            <>
+                              <SelectSeparator />
+                              <SelectGroup>
+                                <SelectLabel>Extensions Only</SelectLabel>
+                                {extensionsWithoutUsers.map((ext) => (
+                                  <SelectItem key={ext} value={ext}>
+                                    {ext}
+                                  </SelectItem>
+                                ))}
+                          </SelectGroup>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      <Input
-                        placeholder="Extension"
+                      <Select
                         value={target.extension || ''}
-                        onChange={(e) => {
+                        onValueChange={(value) => {
                           const updated = [...directTargets];
-                          updated[index] = { ...target, extension: e.target.value };
+                          updated[index] = { ...target, extension: value };
                           setDirectTargets(updated);
                         }}
-                      />
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select an extension" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableExtensions.map((ext) => (
+                            <SelectItem key={ext} value={ext}>
+                              {ext}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                     <Button
                       type="button"
@@ -471,7 +615,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="voicemailScript" className="text-sm font-medium">Voicemail Script</Label>
+          <Label htmlFor="voicemailScript" className="text-xs font-semibold text-slate-700 lg:text-sm">Voicemail Script</Label>
           <Textarea
             id="voicemailScript"
             value={voicemailScript}
@@ -482,7 +626,7 @@ export function CallFlowStep({ locationId, onComplete, skipRules }: CallFlowStep
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Shared Voicemail Users</Label>
+          <Label className="text-xs font-semibold text-slate-700 lg:text-sm">Shared Voicemail Users</Label>
           <Input
             placeholder="Enter user emails separated by commas"
             value={sharedVoicemailUsers.join(', ')}
