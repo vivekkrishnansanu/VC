@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -15,15 +16,18 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { OnboardingStatus } from '@/lib/mock-data/types';
 import Link from 'next/link';
-import { Plus, Building2, MapPin, CheckCircle2, Clock, AlertCircle, LayoutDashboard, Users, Building, Check, X } from 'lucide-react';
+import { Plus, Building2, MapPin, CheckCircle2, Clock, AlertCircle, LayoutDashboard, Users, Building, Check, X, PlayCircle, ChevronRight } from 'lucide-react';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { PortalShell } from '@/components/layouts/PortalShell';
+import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 export default function ImplementationLeadDashboard() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [showApprovals, setShowApprovals] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -190,32 +194,207 @@ export default function ImplementationLeadDashboard() {
           </div>
         </div>
 
-      <Card className="rounded-xl border border-slate-200/60 bg-white shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-bold text-slate-900">Accounts</CardTitle>
-          <CardDescription className="text-sm text-slate-600">All accounts and their onboarding progress.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {accounts.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">
-              No accounts found. Create your first account to get started.
-            </p>
-          ) : (
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-              {accounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  warnings={account.warnings}
-                  progress={account.progress}
-                  locations={account.locations}
-                  userRole="IMPLEMENTATION_LEAD"
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Accounts Table - Professional View */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">Accounts</h2>
+          <p className="text-sm text-slate-600">Track and manage all accounts and their onboarding progress</p>
+        </div>
+
+        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            {accounts.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="h-7 w-7 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-600 mb-1">No accounts found</p>
+                <p className="text-xs text-slate-500">Create your first account to get started.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/50 border-b border-slate-200 hover:bg-slate-50/50">
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider">
+                        Account
+                      </TableHead>
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider w-32">
+                        Product
+                      </TableHead>
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider text-center w-24">
+                        Locations
+                      </TableHead>
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider w-44">
+                        Progress
+                      </TableHead>
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider w-36">
+                        Status
+                      </TableHead>
+                      <TableHead className="h-12 px-6 font-semibold text-xs text-slate-700 uppercase tracking-wider w-36">
+                        Issues
+                      </TableHead>
+                      <TableHead className="h-12 px-6 w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accounts.map((account, index) => {
+                      const accountProgress = account.progress?.percentage || 0;
+                      const locationCount = account.locations?.length || 0;
+                      const hasBlockers = (account.warnings?.blockers?.pendingApprovals || 0) > 0 || 
+                                         (account.warnings?.blockers?.unsupportedPhones || 0) > 0;
+                      const hasWarnings = (account.warnings?.warnings?.missingDevices || 0) > 0 || 
+                                         (account.warnings?.warnings?.incompleteCallFlow || 0) > 0;
+                      const isComplete = accountProgress === 100;
+                      const blockerCount = (account.warnings?.blockers?.pendingApprovals || 0) + 
+                                          ((account.warnings?.blockers?.unsupportedPhones || 0) > 0 ? 1 : 0);
+                      const warningCount = ((account.warnings?.warnings?.missingDevices || 0) > 0 ? 1 : 0) + 
+                                          ((account.warnings?.warnings?.incompleteCallFlow || 0) > 0 ? 1 : 0);
+
+                      let statusLabel = "Not Started";
+                      let statusIcon = Clock;
+                      let statusColor = "bg-slate-50 text-slate-700 border-slate-200";
+                      
+                      if (isComplete) {
+                        statusLabel = "Completed";
+                        statusIcon = CheckCircle2;
+                        statusColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                      } else if (accountProgress > 0) {
+                        statusLabel = "In Progress";
+                        statusIcon = PlayCircle;
+                        statusColor = "bg-blue-50 text-blue-700 border-blue-200";
+                      }
+
+                      const StatusIcon = statusIcon;
+
+                      return (
+                        <TableRow
+                          key={account.id}
+                          className={cn(
+                            "cursor-pointer border-b border-slate-100 transition-all duration-150",
+                            "hover:bg-slate-50/80",
+                            index === accounts.length - 1 && "border-b-0"
+                          )}
+                          onClick={() => router.push(`/implementation-lead/accounts/${account.id}`)}
+                        >
+                          <TableCell className="px-6 py-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                                <Building2 className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-sm text-slate-900 mb-0.5 truncate">
+                                  {account.name}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {account.progress?.completed || 0} of {account.progress?.total || 0} locations complete
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
+                            <Badge 
+                              variant="outline" 
+                              className="bg-white border-slate-200 text-slate-700 text-xs font-medium px-2.5 py-1 whitespace-nowrap"
+                            >
+                              {account.productType?.replace('_', ' ') || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center">
+                            <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                              {locationCount}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                                  {accountProgress}%
+                                </span>
+                                <span className="text-xs text-slate-500 font-medium tabular-nums">
+                                  {account.progress?.completed || 0} of {account.progress?.total || 0} locations
+                                </span>
+                              </div>
+                              <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-500 ease-out",
+                                    isComplete
+                                      ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
+                                      : hasBlockers
+                                      ? "bg-gradient-to-r from-red-500 to-red-600"
+                                      : "bg-gradient-to-r from-blue-500 to-blue-600"
+                                  )}
+                                  style={{ width: `${accountProgress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
+                            <Badge
+                              className={cn(
+                                "inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border whitespace-nowrap",
+                                statusColor
+                              )}
+                            >
+                              <StatusIcon className="h-3 w-3 shrink-0" />
+                              <span className="whitespace-nowrap">{statusLabel}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
+                            <div className="flex items-center gap-2 flex-nowrap">
+                              {blockerCount > 0 && (
+                                <Badge 
+                                  className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 border-red-200 text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap shrink-0"
+                                >
+                                  <AlertCircle className="h-3 w-3 shrink-0" />
+                                  <span className="whitespace-nowrap">{blockerCount} blocker{blockerCount > 1 ? 's' : ''}</span>
+                                </Badge>
+                              )}
+                              {warningCount > 0 && (
+                                <Badge 
+                                  className="inline-flex items-center gap-1.5 bg-[#FFFDEB] text-[#92400E] border-2 border-[#F0C94F] text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap shrink-0"
+                                >
+                                  <AlertCircle className="h-3 w-3 shrink-0 text-[#F0C94F]" />
+                                  <span className="whitespace-nowrap">{warningCount} warning{warningCount > 1 ? 's' : ''}</span>
+                                </Badge>
+                              )}
+                              {!hasBlockers && !hasWarnings && isComplete && (
+                                <Badge 
+                                  className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap shrink-0"
+                                >
+                                  <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                  <span className="whitespace-nowrap">Complete</span>
+                                </Badge>
+                              )}
+                              {!hasBlockers && !hasWarnings && !isComplete && (
+                                <span className="text-xs text-slate-400 font-medium whitespace-nowrap shrink-0">No issues</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/implementation-lead/accounts/${account.id}`);
+                              }}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Pending Approvals Dialog */}
       <Dialog open={showApprovals} onOpenChange={setShowApprovals}>
