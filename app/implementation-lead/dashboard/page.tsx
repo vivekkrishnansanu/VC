@@ -139,14 +139,6 @@ export default function ImplementationLeadDashboard() {
         { title: "Accounts", href: "/implementation-lead/dashboard", icon: <Building className="h-4 w-4" /> },
         { title: "Users", href: "/implementation-lead/dashboard", icon: <Users className="h-4 w-4" /> },
       ]}
-      actions={
-        <Link href="/implementation-lead/accounts/create">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Create New Account
-          </Button>
-        </Link>
-      }
     >
       <div className="space-y-6">
 
@@ -196,9 +188,20 @@ export default function ImplementationLeadDashboard() {
 
       {/* Accounts Table - Professional View */}
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-1">Accounts</h2>
-          <p className="text-sm text-slate-600">Track and manage all accounts and their onboarding progress</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Accounts</h2>
+            <p className="text-sm text-slate-600">Track and manage all accounts and their onboarding progress</p>
+          </div>
+          <Link href="/implementation-lead/accounts/create">
+            <Button 
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-6 py-2.5 h-11 shadow-md hover:shadow-lg transition-all duration-200 border-0 hover:scale-105 active:scale-100"
+              size="lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Account
+            </Button>
+          </Link>
         </div>
 
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
